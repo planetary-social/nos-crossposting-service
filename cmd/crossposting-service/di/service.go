@@ -6,6 +6,7 @@ import (
 	"github.com/boreq/errors"
 	"github.com/hashicorp/go-multierror"
 	"github.com/planetary-social/nos-crossposting-service/service/adapters"
+	"github.com/planetary-social/nos-crossposting-service/service/adapters/sqlite"
 	"github.com/planetary-social/nos-crossposting-service/service/app"
 	"github.com/planetary-social/nos-crossposting-service/service/ports/http"
 )
@@ -18,6 +19,7 @@ type Service struct {
 	//receivedEventSubscriber   *memorypubsub.ReceivedEventSubscriber
 	//eventSavedSubscriber      *firestorepubsub.EventSavedSubscriber
 	eventWasAlreadySavedCache *adapters.MemoryEventWasAlreadySavedCache
+	migrations                *sqlite.Migrations
 }
 
 func NewService(
@@ -28,6 +30,7 @@ func NewService(
 	//receivedEventSubscriber *memorypubsub.ReceivedEventSubscriber,
 	//eventSavedSubscriber *firestorepubsub.EventSavedSubscriber,
 	eventWasAlreadySavedCache *adapters.MemoryEventWasAlreadySavedCache,
+	migrations *sqlite.Migrations,
 ) Service {
 	return Service{
 		app:           app,
@@ -37,11 +40,16 @@ func NewService(
 		//receivedEventSubscriber:   receivedEventSubscriber,
 		//eventSavedSubscriber:      eventSavedSubscriber,
 		eventWasAlreadySavedCache: eventWasAlreadySavedCache,
+		migrations:                migrations,
 	}
 }
 
 func (s Service) App() app.Application {
 	return s.app
+}
+
+func (s Service) ExecuteMigrations(ctx context.Context) error {
+	return s.migrations.Execute(ctx)
 }
 
 func (s Service) Run(ctx context.Context) error {

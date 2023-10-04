@@ -25,6 +25,8 @@ type Config struct {
 
 	twitterKey       string
 	twitterKeySecret string
+
+	databasePath string
 }
 
 func NewConfig(
@@ -34,6 +36,7 @@ func NewConfig(
 	logLevel logging.Level,
 	twitterKey string,
 	twitterKeySecret string,
+	databasePath string,
 ) (Config, error) {
 	c := Config{
 		listenAddress:        listenAddress,
@@ -42,6 +45,7 @@ func NewConfig(
 		logLevel:             logLevel,
 		twitterKey:           twitterKey,
 		twitterKeySecret:     twitterKeySecret,
+		databasePath:         databasePath,
 	}
 
 	c.setDefaults()
@@ -76,6 +80,10 @@ func (c *Config) TwitterKeySecret() string {
 	return c.twitterKeySecret
 }
 
+func (c *Config) DatabasePath() string {
+	return c.databasePath
+}
+
 func (c *Config) setDefaults() {
 	if c.listenAddress == "" {
 		c.listenAddress = ":8008"
@@ -108,6 +116,10 @@ func (c *Config) validate() error {
 
 	if c.twitterKeySecret == "" {
 		return errors.New("missing twitter key secret")
+	}
+
+	if c.databasePath == "" {
+		return errors.New("missing database path")
 	}
 
 	return nil

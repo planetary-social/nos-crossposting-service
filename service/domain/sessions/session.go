@@ -1,25 +1,39 @@
 package sessions
 
 import (
+	"time"
+
 	"github.com/boreq/errors"
 	"github.com/planetary-social/nos-crossposting-service/service/domain/accounts"
 )
 
 type Session struct {
-	accountID accounts.AccountID
 	sessionID SessionID
+	accountID accounts.AccountID
+	createdAt time.Time
 }
 
-func NewSession(accountID accounts.AccountID, sessionID SessionID) *Session {
-	return &Session{accountID: accountID, sessionID: sessionID}
+func NewSession(sessionID SessionID, accountID accounts.AccountID, createdAt time.Time) (*Session, error) {
+	if createdAt.IsZero() {
+		return nil, errors.New("zero value of created at")
+	}
+	return &Session{
+		sessionID: sessionID,
+		accountID: accountID,
+		createdAt: createdAt,
+	}, nil
+}
+
+func (s Session) SessionID() SessionID {
+	return s.sessionID
 }
 
 func (s Session) AccountID() accounts.AccountID {
 	return s.accountID
 }
 
-func (s Session) SessionID() SessionID {
-	return s.sessionID
+func (s Session) CreatedAt() time.Time {
+	return s.createdAt
 }
 
 type SessionID struct {

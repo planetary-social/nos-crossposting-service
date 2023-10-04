@@ -1,61 +1,42 @@
 package di
 
 import (
-	googlefirestore "cloud.google.com/go/firestore"
+	"database/sql"
+
+	"github.com/boreq/errors"
 	"github.com/google/wire"
+	"github.com/planetary-social/nos-crossposting-service/internal/logging"
 	"github.com/planetary-social/nos-crossposting-service/service/adapters"
-	"github.com/planetary-social/nos-crossposting-service/service/adapters/firestore"
 	"github.com/planetary-social/nos-crossposting-service/service/adapters/memory"
 	"github.com/planetary-social/nos-crossposting-service/service/adapters/prometheus"
+	"github.com/planetary-social/nos-crossposting-service/service/adapters/sqlite"
 	"github.com/planetary-social/nos-crossposting-service/service/app"
+	"github.com/planetary-social/nos-crossposting-service/service/config"
 	"github.com/planetary-social/nos-crossposting-service/service/ports/firestorepubsub"
 )
 
-var firestoreAdaptersSet = wire.NewSet(
-	//newFirestoreClient,
+var sqliteAdaptersSet = wire.NewSet(
+	newSqliteDB,
 
-	firestore.NewTransactionProvider,
-	wire.Bind(new(app.TransactionProvider), new(*firestore.TransactionProvider)),
+	sqlite.NewTransactionProvider,
+	wire.Bind(new(app.TransactionProvider), new(*sqlite.TransactionProvider)),
 
 	newAdaptersFactoryFn,
+
+	sqlite.NewMigrations,
 
 	//firestore.NewWatermillSubscriber,
 	//wire.Bind(new(firestorepubsub.FirestoreSubscriber), new(*watermillfirestore.Subscriber)),
 
-	wire.Struct(new(buildTransactionFirestoreAdaptersDependencies), "*"),
+	wire.Struct(new(buildTransactionSqliteAdaptersDependencies), "*"),
 )
 
-func newAdaptersFactoryFn(deps buildTransactionFirestoreAdaptersDependencies) firestore.AdaptersFactoryFn {
-	return func(client *googlefirestore.Client, tx *googlefirestore.Transaction) (app.Adapters, error) {
-		return buildTransactionFirestoreAdapters(client, tx, deps)
-	}
-}
+var sqliteTxAdaptersSet = wire.NewSet(
+	sqlite.NewAccountRepository,
+	wire.Bind(new(app.AccountRepository), new(*sqlite.AccountRepository)),
 
-var firestoreTxAdaptersSet = wire.NewSet(
-	firestore.NewRegistrationRepository,
-	wire.Bind(new(app.RegistrationRepository), new(*firestore.RegistrationRepository)),
-
-	firestore.NewEventRepository,
-	wire.Bind(new(app.EventRepository), new(*firestore.EventRepository)),
-
-	firestore.NewRelayRepository,
-	wire.Bind(new(app.RelayRepository), new(*firestore.RelayRepository)),
-
-	firestore.NewPublicKeyRepository,
-	wire.Bind(new(app.PublicKeyRepository), new(*firestore.PublicKeyRepository)),
-
-	firestore.NewTagRepository,
-	wire.Bind(new(app.TagRepository), new(*firestore.TagRepository)),
-
-	//firestore.NewWatermillPublisher,
-	firestore.NewPublisher,
-	//wire.Bind(new(app.Publisher), new(*firestore.Publisher)),
-
-	memory.NewMemoryAccountRepository,
-	wire.Bind(new(app.AccountRepository), new(*memory.MemoryAccountRepository)),
-
-	memory.NewMemorySessionRepository,
-	wire.Bind(new(app.SessionRepository), new(*memory.MemorySessionRepository)),
+	sqlite.NewSessionRepository,
+	wire.Bind(new(app.SessionRepository), new(*sqlite.SessionRepository)),
 )
 
 var adaptersSet = wire.NewSet(
@@ -69,12 +50,6 @@ var adaptersSet = wire.NewSet(
 	adapters.NewIDGenerator,
 	wire.Bind(new(app.SessionIDGenerator), new(*adapters.IDGenerator)),
 	wire.Bind(new(app.AccountIDGenerator), new(*adapters.IDGenerator)),
-
-	memory.NewMemoryAccountRepository,
-	wire.Bind(new(app.AccountRepository), new(*memory.MemoryAccountRepository)),
-
-	memory.NewMemorySessionRepository,
-	wire.Bind(new(app.SessionRepository), new(*memory.MemorySessionRepository)),
 )
 
 var integrationAdaptersSet = wire.NewSet(
@@ -96,15 +71,21 @@ var integrationAdaptersSet = wire.NewSet(
 	wire.Bind(new(app.SessionRepository), new(*memory.MemorySessionRepository)),
 )
 
-//func newFirestoreClient(ctx context.Context, config config.Config, logger logging.Logger) (*googlefirestore.Client, func(), error) {
-//	v, err := firestore.NewClient(ctx, config)
-//	if err != nil {
-//		return nil, nil, errors.Wrap(err, "error creating the firestore client")
-//	}
-//
-//	return v, func() {
-//		if err := v.Close(); err != nil {
-//			logger.Error().WithError(err).Message("error closing firestore")
-//		}
-//	}, nil
-//}
+func newAdaptersFactoryFn(deps buildTransactionSqliteAdaptersDependencies) sqlite.AdaptersFactoryFn {
+	return func(db *sql.DB, tx *sql.Tx) (app.Adapters, error) {
+		return buildTransactionSqliteAdapters(db, tx, deps)
+	}
+}
+
+func newSqliteDB(config config.Config, logger logging.Logger) (*sql.DB, func(), error) {
+	v, err := sqlite.Open(config)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "error opening the sqlite database")
+	}
+
+	return v, func() {
+		if err := v.Close(); err != nil {
+			logger.Error().WithError(err).Message("error closing firestore")
+		}
+	}, nil
+}

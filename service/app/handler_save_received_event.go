@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/boreq/errors"
 	"github.com/planetary-social/nos-crossposting-service/internal/logging"
 	"github.com/planetary-social/nos-crossposting-service/service/domain"
 )
@@ -58,29 +57,29 @@ func (h *SaveReceivedEventHandler) Handle(ctx context.Context, cmd SaveReceivedE
 		WithField("number_of_tags", len(cmd.event.Tags())).
 		Message("saving received event")
 
-	if err := h.transactionProvider.Transact(ctx, func(ctx context.Context, adapters Adapters) error {
-		exists, err := adapters.Events.Exists(ctx, cmd.event.Id())
-		if err != nil {
-			return errors.Wrap(err, "error checking if event exists")
-		}
-
-		if exists {
-			h.eventWasAlreadySavedCache.MarkEventAsAlreadySaved(cmd.event.Id())
-			return nil
-		}
-
-		if err := adapters.Events.Save(cmd.event); err != nil {
-			return errors.Wrap(err, "error saving the event")
-		}
-
-		//if err := adapters.Publisher.PublishEventSaved(ctx, cmd.event.Id()); err != nil {
-		//	return errors.Wrap(err, "error publishing")
-		//}
-
-		return nil
-	}); err != nil {
-		return errors.Wrap(err, "transaction error")
-	}
+	//if err := h.transactionProvider.Transact(ctx, func(ctx context.Context, adapters Adapters) error {
+	//	exists, err := adapters.Events.Exists(ctx, cmd.event.Id())
+	//	if err != nil {
+	//		return errors.Wrap(err, "error checking if event exists")
+	//	}
+	//
+	//	if exists {
+	//		h.eventWasAlreadySavedCache.MarkEventAsAlreadySaved(cmd.event.Id())
+	//		return nil
+	//	}
+	//
+	//	if err := adapters.Events.Save(cmd.event); err != nil {
+	//		return errors.Wrap(err, "error saving the event")
+	//	}
+	//
+	//	//if err := adapters.Publisher.PublishEventSaved(ctx, cmd.event.Id()); err != nil {
+	//	//	return errors.Wrap(err, "error publishing")
+	//	//}
+	//
+	//	return nil
+	//}); err != nil {
+	//	return errors.Wrap(err, "transaction error")
+	//}
 
 	return nil
 }

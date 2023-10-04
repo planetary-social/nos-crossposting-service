@@ -16,13 +16,13 @@ type TransactionProvider interface {
 }
 
 type Adapters struct {
-	Accounts      AccountRepository
-	Sessions      SessionRepository
-	Registrations RegistrationRepository
-	Relays        RelayRepository
-	PublicKeys    PublicKeyRepository
-	Events        EventRepository
-	Tags          TagRepository
+	Accounts AccountRepository
+	Sessions SessionRepository
+	//Registrations RegistrationRepository
+	//Relays        RelayRepository
+	//PublicKeys    PublicKeyRepository
+	//Events        EventRepository
+	//Tags          TagRepository
 
 	//Publisher Publisher
 }
@@ -79,7 +79,6 @@ type TagRepository interface {
 
 type Application struct {
 	SaveReceivedEvent *SaveReceivedEventHandler
-	SaveRegistration  *SaveRegistrationHandler
 
 	GetRelays        *GetRelaysHandler
 	GetPublicKeys    *GetPublicKeysHandler

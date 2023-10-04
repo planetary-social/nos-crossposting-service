@@ -1,7 +1,16 @@
-template index
+<!DOCTYPE html>
+<html>
+<body>
+
+<h1>
+    template index
+</h1>
 
 {{ if .account }}
     logged in as {{ .account.AccountID }}
 {{ else }}
+    <a href="/login">login</a>
     not logged in
 {{ end  }}
+</body>
+</html>

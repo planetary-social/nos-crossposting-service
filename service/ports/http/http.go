@@ -50,6 +50,11 @@ func (s *Server) ListenAndServe(ctx context.Context) error {
 		return errors.Wrap(err, "error listening")
 	}
 
+	s.logger.
+		Debug().
+		WithField("address", s.config.ListenAddress()).
+		Message("started the listener")
+
 	go func() {
 		<-ctx.Done()
 		if err := listener.Close(); err != nil {

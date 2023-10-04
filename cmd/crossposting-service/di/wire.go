@@ -5,8 +5,8 @@ package di
 
 import (
 	"context"
+	"database/sql"
 
-	googlefirestore "cloud.google.com/go/firestore"
 	"github.com/google/wire"
 	"github.com/planetary-social/nos-crossposting-service/service/app"
 	"github.com/planetary-social/nos-crossposting-service/service/config"
@@ -19,7 +19,7 @@ func BuildService(context.Context, config.Config) (Service, func(), error) {
 
 		portsSet,
 		applicationSet,
-		firestoreAdaptersSet,
+		sqliteAdaptersSet,
 		//downloaderSet,
 		//generatorSet,
 		pubsubSet,
@@ -41,7 +41,7 @@ func BuildIntegrationService(context.Context, config.Config) (IntegrationService
 
 		portsSet,
 		applicationSet,
-		firestoreAdaptersSet,
+		sqliteAdaptersSet,
 		//downloaderSet,
 		//generatorSet,
 		pubsubSet,
@@ -51,16 +51,16 @@ func BuildIntegrationService(context.Context, config.Config) (IntegrationService
 	return IntegrationService{}, nil, nil
 }
 
-type buildTransactionFirestoreAdaptersDependencies struct {
+type buildTransactionSqliteAdaptersDependencies struct {
 	//LoggerAdapter watermill.LoggerAdapter
 }
 
-func buildTransactionFirestoreAdapters(client *googlefirestore.Client, tx *googlefirestore.Transaction, deps buildTransactionFirestoreAdaptersDependencies) (app.Adapters, error) {
+func buildTransactionSqliteAdapters(*sql.DB, *sql.Tx, buildTransactionSqliteAdaptersDependencies) (app.Adapters, error) {
 	wire.Build(
 		wire.Struct(new(app.Adapters), "*"),
-		//wire.FieldsOf(new(buildTransactionFirestoreAdaptersDependencies), "LoggerAdapter"),
+		//wire.FieldsOf(new(buildTransactionSqliteAdaptersDependencies), "LoggerAdapter"),
 
-		firestoreTxAdaptersSet,
+		sqliteTxAdaptersSet,
 	)
 	return app.Adapters{}, nil
 

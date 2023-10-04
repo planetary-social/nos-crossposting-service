@@ -148,16 +148,16 @@ func (d *Downloader) updateRelays(ctx context.Context) error {
 func (d *Downloader) getRelays(ctx context.Context) (*internal.Set[domain.RelayAddress], error) {
 	var relays []domain.RelayAddress
 
-	if err := d.transactionProvider.Transact(ctx, func(ctx context.Context, adapters Adapters) error {
-		tmp, err := adapters.Relays.GetRelays(ctx, time.Now().Add(-getRelaysYoungerThan))
-		if err != nil {
-			return errors.Wrap(err, "error getting relays")
-		}
-		relays = tmp
-		return nil
-	}); err != nil {
-		return nil, errors.Wrap(err, "transaction error")
-	}
+	//if err := d.transactionProvider.Transact(ctx, func(ctx context.Context, adapters Adapters) error {
+	//	tmp, err := adapters.Relays.GetRelays(ctx, time.Now().Add(-getRelaysYoungerThan))
+	//	if err != nil {
+	//		return errors.Wrap(err, "error getting relays")
+	//	}
+	//	relays = tmp
+	//	return nil
+	//}); err != nil {
+	//	return nil, errors.Wrap(err, "transaction error")
+	//}
 
 	return internal.NewSet(relays), nil
 }
@@ -413,16 +413,16 @@ func (d *RelayDownloader) createRequest(publicKey domain.PublicKey) nostr.ReqEnv
 func (d *RelayDownloader) getPublicKeys(ctx context.Context) (*internal.Set[domain.PublicKey], error) {
 	var publicKeys []domain.PublicKey
 
-	if err := d.transactionProvider.Transact(ctx, func(ctx context.Context, adapters Adapters) error {
-		tmp, err := adapters.Relays.GetPublicKeys(ctx, d.address, time.Now().Add(-getPublicKeysYoungerThan))
-		if err != nil {
-			return errors.Wrap(err, "error getting public keys")
-		}
-		publicKeys = tmp
-		return nil
-	}); err != nil {
-		return nil, errors.Wrap(err, "transaction error")
-	}
+	//if err := d.transactionProvider.Transact(ctx, func(ctx context.Context, adapters Adapters) error {
+	//	tmp, err := adapters.Relays.GetPublicKeys(ctx, d.address, time.Now().Add(-getPublicKeysYoungerThan))
+	//	if err != nil {
+	//		return errors.Wrap(err, "error getting public keys")
+	//	}
+	//	publicKeys = tmp
+	//	return nil
+	//}); err != nil {
+	//	return nil, errors.Wrap(err, "transaction error")
+	//}
 
 	return internal.NewSet(publicKeys), nil
 }

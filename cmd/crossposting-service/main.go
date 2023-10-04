@@ -31,5 +31,9 @@ func run() error {
 	}
 	defer cleanup()
 
+	if err := service.ExecuteMigrations(ctx); err != nil {
+		return errors.Wrap(err, "error executing migrations")
+	}
+
 	return service.Run(ctx)
 }

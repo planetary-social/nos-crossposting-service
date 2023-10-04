@@ -19,6 +19,7 @@ const (
 	envLogLevel             = "LOG_LEVEL"
 	envTwitterKey           = "TWITTER_KEY"
 	envTwitterKeySecret     = "TWITTER_KEY_SECRET"
+	envDatabasePath         = "DATABASE_PATH"
 )
 
 type EnvironmentConfigLoader struct {
@@ -40,13 +41,13 @@ func (c *EnvironmentConfigLoader) Load() (config.Config, error) {
 	}
 
 	return config.NewConfig(
-
 		c.getenv(envNostrListenAddress),
 		c.getenv(envMetricsListenAddress),
 		environment,
 		logLevel,
 		c.getenv(envTwitterKey),
 		c.getenv(envTwitterKeySecret),
+		c.getenv(envDatabasePath),
 	)
 }
 

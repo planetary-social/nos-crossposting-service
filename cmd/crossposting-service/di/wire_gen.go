@@ -8,14 +8,13 @@ package di
 
 import (
 	"context"
+	"database/sql"
 
-	firestore2 "cloud.google.com/go/firestore"
 	"github.com/google/wire"
 	"github.com/planetary-social/nos-crossposting-service/service/adapters"
-	"github.com/planetary-social/nos-crossposting-service/service/adapters/firestore"
-	"github.com/planetary-social/nos-crossposting-service/service/adapters/memory"
 	"github.com/planetary-social/nos-crossposting-service/service/adapters/prometheus"
 	"github.com/planetary-social/nos-crossposting-service/service/adapters/pubsub"
+	"github.com/planetary-social/nos-crossposting-service/service/adapters/sqlite"
 	"github.com/planetary-social/nos-crossposting-service/service/app"
 	"github.com/planetary-social/nos-crossposting-service/service/config"
 	"github.com/planetary-social/nos-crossposting-service/service/domain/notifications"
@@ -26,19 +25,23 @@ import (
 
 func BuildService(contextContext context.Context, configConfig config.Config) (Service, func(), error) {
 	memoryEventWasAlreadySavedCache := adapters.NewMemoryEventWasAlreadySavedCache()
-	diBuildTransactionFirestoreAdaptersDependencies := buildTransactionFirestoreAdaptersDependencies{}
-	adaptersFactoryFn := newAdaptersFactoryFn(diBuildTransactionFirestoreAdaptersDependencies)
-	transactionProvider := firestore.NewTransactionProvider(adaptersFactoryFn)
 	logger, err := newLogger(configConfig)
 	if err != nil {
 		return Service{}, nil, err
 	}
-	prometheusPrometheus, err := prometheus.NewPrometheus(logger)
+	db, cleanup, err := newSqliteDB(configConfig, logger)
 	if err != nil {
 		return Service{}, nil, err
 	}
+	diBuildTransactionSqliteAdaptersDependencies := buildTransactionSqliteAdaptersDependencies{}
+	adaptersFactoryFn := newAdaptersFactoryFn(diBuildTransactionSqliteAdaptersDependencies)
+	transactionProvider := sqlite.NewTransactionProvider(db, adaptersFactoryFn)
+	prometheusPrometheus, err := prometheus.NewPrometheus(logger)
+	if err != nil {
+		cleanup()
+		return Service{}, nil, err
+	}
 	saveReceivedEventHandler := app.NewSaveReceivedEventHandler(memoryEventWasAlreadySavedCache, transactionProvider, logger, prometheusPrometheus)
-	saveRegistrationHandler := app.NewSaveRegistrationHandler(transactionProvider, logger, prometheusPrometheus)
 	getRelaysHandler := app.NewGetRelaysHandler(transactionProvider, prometheusPrometheus)
 	getPublicKeysHandler := app.NewGetPublicKeysHandler(transactionProvider, prometheusPrometheus)
 	getTokensHandler := app.NewGetTokensHandler(transactionProvider, prometheusPrometheus)
@@ -50,7 +53,6 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 	loginOrRegisterHandler := app.NewLoginOrRegisterHandler(transactionProvider, idGenerator, idGenerator, logger, prometheusPrometheus)
 	application := app.Application{
 		SaveReceivedEvent: saveReceivedEventHandler,
-		SaveRegistration:  saveRegistrationHandler,
 		GetRelays:         getRelaysHandler,
 		GetPublicKeys:     getPublicKeysHandler,
 		GetTokens:         getTokensHandler,
@@ -61,26 +63,32 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 	}
 	server := http.NewServer(configConfig, application, logger)
 	metricsServer := http.NewMetricsServer(prometheusPrometheus, configConfig, logger)
-	service := NewService(application, server, metricsServer, memoryEventWasAlreadySavedCache)
+	migrations := sqlite.NewMigrations(db)
+	service := NewService(application, server, metricsServer, memoryEventWasAlreadySavedCache, migrations)
 	return service, func() {
+		cleanup()
 	}, nil
 }
 
 func BuildIntegrationService(contextContext context.Context, configConfig config.Config) (IntegrationService, func(), error) {
 	memoryEventWasAlreadySavedCache := adapters.NewMemoryEventWasAlreadySavedCache()
-	diBuildTransactionFirestoreAdaptersDependencies := buildTransactionFirestoreAdaptersDependencies{}
-	adaptersFactoryFn := newAdaptersFactoryFn(diBuildTransactionFirestoreAdaptersDependencies)
-	transactionProvider := firestore.NewTransactionProvider(adaptersFactoryFn)
 	logger, err := newLogger(configConfig)
 	if err != nil {
 		return IntegrationService{}, nil, err
 	}
-	prometheusPrometheus, err := prometheus.NewPrometheus(logger)
+	db, cleanup, err := newSqliteDB(configConfig, logger)
 	if err != nil {
 		return IntegrationService{}, nil, err
 	}
+	diBuildTransactionSqliteAdaptersDependencies := buildTransactionSqliteAdaptersDependencies{}
+	adaptersFactoryFn := newAdaptersFactoryFn(diBuildTransactionSqliteAdaptersDependencies)
+	transactionProvider := sqlite.NewTransactionProvider(db, adaptersFactoryFn)
+	prometheusPrometheus, err := prometheus.NewPrometheus(logger)
+	if err != nil {
+		cleanup()
+		return IntegrationService{}, nil, err
+	}
 	saveReceivedEventHandler := app.NewSaveReceivedEventHandler(memoryEventWasAlreadySavedCache, transactionProvider, logger, prometheusPrometheus)
-	saveRegistrationHandler := app.NewSaveRegistrationHandler(transactionProvider, logger, prometheusPrometheus)
 	getRelaysHandler := app.NewGetRelaysHandler(transactionProvider, prometheusPrometheus)
 	getPublicKeysHandler := app.NewGetPublicKeysHandler(transactionProvider, prometheusPrometheus)
 	getTokensHandler := app.NewGetTokensHandler(transactionProvider, prometheusPrometheus)
@@ -92,7 +100,6 @@ func BuildIntegrationService(contextContext context.Context, configConfig config
 	loginOrRegisterHandler := app.NewLoginOrRegisterHandler(transactionProvider, idGenerator, idGenerator, logger, prometheusPrometheus)
 	application := app.Application{
 		SaveReceivedEvent: saveReceivedEventHandler,
-		SaveRegistration:  saveRegistrationHandler,
 		GetRelays:         getRelaysHandler,
 		GetPublicKeys:     getPublicKeysHandler,
 		GetTokens:         getTokensHandler,
@@ -103,30 +110,28 @@ func BuildIntegrationService(contextContext context.Context, configConfig config
 	}
 	server := http.NewServer(configConfig, application, logger)
 	metricsServer := http.NewMetricsServer(prometheusPrometheus, configConfig, logger)
-	service := NewService(application, server, metricsServer, memoryEventWasAlreadySavedCache)
+	migrations := sqlite.NewMigrations(db)
+	service := NewService(application, server, metricsServer, memoryEventWasAlreadySavedCache, migrations)
 	integrationService := IntegrationService{
 		Service: service,
 	}
 	return integrationService, func() {
+		cleanup()
 	}, nil
 }
 
-func buildTransactionFirestoreAdapters(client *firestore2.Client, tx *firestore2.Transaction, deps buildTransactionFirestoreAdaptersDependencies) (app.Adapters, error) {
-	memoryAccountRepository := memory.NewMemoryAccountRepository()
-	memorySessionRepository := memory.NewMemorySessionRepository()
-	relayRepository := firestore.NewRelayRepository(client, tx)
-	publicKeyRepository := firestore.NewPublicKeyRepository(client, tx)
-	registrationRepository := firestore.NewRegistrationRepository(client, tx, relayRepository, publicKeyRepository)
-	tagRepository := firestore.NewTagRepository(client, tx)
-	eventRepository := firestore.NewEventRepository(client, tx, relayRepository, tagRepository)
+func buildTransactionSqliteAdapters(db *sql.DB, tx *sql.Tx, diBuildTransactionSqliteAdaptersDependencies buildTransactionSqliteAdaptersDependencies) (app.Adapters, error) {
+	accountRepository, err := sqlite.NewAccountRepository(tx)
+	if err != nil {
+		return app.Adapters{}, err
+	}
+	sessionRepository, err := sqlite.NewSessionRepository(tx)
+	if err != nil {
+		return app.Adapters{}, err
+	}
 	appAdapters := app.Adapters{
-		Accounts:      memoryAccountRepository,
-		Sessions:      memorySessionRepository,
-		Registrations: registrationRepository,
-		Relays:        relayRepository,
-		PublicKeys:    publicKeyRepository,
-		Events:        eventRepository,
-		Tags:          tagRepository,
+		Accounts: accountRepository,
+		Sessions: sessionRepository,
 	}
 	return appAdapters, nil
 }
@@ -137,7 +142,7 @@ type IntegrationService struct {
 	Service Service
 }
 
-type buildTransactionFirestoreAdaptersDependencies struct {
+type buildTransactionSqliteAdaptersDependencies struct {
 }
 
 var downloaderSet = wire.NewSet(app.NewDownloader)

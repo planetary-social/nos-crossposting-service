@@ -3,7 +3,6 @@ package app
 import (
 	"context"
 
-	"github.com/boreq/errors"
 	"github.com/planetary-social/nos-crossposting-service/service/domain"
 )
 
@@ -66,42 +65,42 @@ func (h *GetEventsHandler) Handle(ctx context.Context, filters domain.Filters) <
 func (h *GetEventsHandler) send(ctx context.Context, filters domain.Filters, ch chan<- EventOrEOSEOrError) {
 	defer close(ch)
 
-	receivedEvents := h.receivedEventSubscriber.Subscribe(ctx)
-
-	if err := h.transactionProvider.Transact(ctx, func(ctx context.Context, adapters Adapters) error {
-		for eventOrErr := range adapters.Events.GetEvents(ctx, filters) {
-			if err := eventOrErr.Err(); err != nil {
-				return errors.Wrap(err, "repository returned an error")
-			}
-
-			select {
-			case ch <- NewEventOrEOSEOrErrorWithEvent(eventOrErr.Event()):
-			case <-ctx.Done():
-				return ctx.Err()
-			}
-		}
-		return nil
-	}); err != nil {
-		select {
-		case ch <- NewEventOrEOSEOrErrorWithError(errors.Wrap(err, "transaction failed")):
-		case <-ctx.Done():
-		}
-		return
-	}
-
-	select {
-	case ch <- NewEventOrEOSEOrErrorWithEOSE():
-	case <-ctx.Done():
-		return
-	}
-
-	for receivedEvent := range receivedEvents {
-		if filters.Match(receivedEvent.Event()) {
-			select {
-			case ch <- NewEventOrEOSEOrErrorWithEvent(receivedEvent.Event()):
-			case <-ctx.Done():
-				return
-			}
-		}
-	}
+	//receivedEvents := h.receivedEventSubscriber.Subscribe(ctx)
+	//
+	//if err := h.transactionProvider.Transact(ctx, func(ctx context.Context, adapters Adapters) error {
+	//	for eventOrErr := range adapters.Events.GetEvents(ctx, filters) {
+	//		if err := eventOrErr.Err(); err != nil {
+	//			return errors.Wrap(err, "repository returned an error")
+	//		}
+	//
+	//		select {
+	//		case ch <- NewEventOrEOSEOrErrorWithEvent(eventOrErr.Event()):
+	//		case <-ctx.Done():
+	//			return ctx.Err()
+	//		}
+	//	}
+	//	return nil
+	//}); err != nil {
+	//	select {
+	//	case ch <- NewEventOrEOSEOrErrorWithError(errors.Wrap(err, "transaction failed")):
+	//	case <-ctx.Done():
+	//	}
+	//	return
+	//}
+	//
+	//select {
+	//case ch <- NewEventOrEOSEOrErrorWithEOSE():
+	//case <-ctx.Done():
+	//	return
+	//}
+	//
+	//for receivedEvent := range receivedEvents {
+	//	if filters.Match(receivedEvent.Event()) {
+	//		select {
+	//		case ch <- NewEventOrEOSEOrErrorWithEvent(receivedEvent.Event()):
+	//		case <-ctx.Done():
+	//			return
+	//		}
+	//	}
+	//}
 }

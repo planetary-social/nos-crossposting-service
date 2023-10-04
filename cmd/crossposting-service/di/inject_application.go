@@ -10,8 +10,6 @@ import (
 var applicationSet = wire.NewSet(
 	wire.Struct(new(app.Application), "*"),
 
-	app.NewSaveRegistrationHandler,
-
 	app.NewSaveReceivedEventHandler,
 	wire.Bind(new(memorypubsub.SaveReceivedEventHandler), new(*app.SaveReceivedEventHandler)),
 

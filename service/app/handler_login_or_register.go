@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"time"
 
 	"github.com/boreq/errors"
 	"github.com/planetary-social/nos-crossposting-service/internal/logging"
@@ -57,7 +58,10 @@ func (h *LoginOrRegisterHandler) Handle(ctx context.Context, cmd LoginOrRegister
 			return errors.Wrap(err, "error generating a new session id")
 		}
 
-		session := sessions.NewSession(account.AccountID(), sessionID)
+		session, err := sessions.NewSession(sessionID, account.AccountID(), time.Now())
+		if err != nil {
+			return errors.Wrap(err, "error creating a new session")
+		}
 
 		if err := adapters.Sessions.Save(session); err != nil {
 			return errors.Wrap(err, "error saving a session")
