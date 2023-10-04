@@ -6,11 +6,13 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/rand"
+	"os"
 	"testing"
 
 	"github.com/nbd-wtf/go-nostr"
 	"github.com/planetary-social/nos-crossposting-service/internal"
 	"github.com/planetary-social/nos-crossposting-service/service/domain"
+	"github.com/planetary-social/nos-crossposting-service/service/domain/accounts"
 )
 
 func Context(tb testing.TB) context.Context {
@@ -60,6 +62,14 @@ func SomeAPNSToken() domain.APNSToken {
 	return v
 }
 
+func SomeAccountID() accounts.AccountID {
+	return accounts.MustNewAccountID(SomeHexBytesOfLen(10))
+}
+
+func SomeTwitterID() accounts.TwitterID {
+	return accounts.NewTwitterID(rand.Int63())
+}
+
 func SomeHexBytesOfLen(l int) string {
 	b := make([]byte, l)
 	n, err := cryptorand.Read(b)
@@ -70,6 +80,29 @@ func SomeHexBytesOfLen(l int) string {
 		panic(err)
 	}
 	return hex.EncodeToString(b)
+}
+
+func SomeFile(t testing.TB) string {
+	file, err := os.CreateTemp("", "nos-crossposting-test")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cleanup := func() {
+		err := os.Remove(file.Name())
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	t.Cleanup(cleanup)
+
+	return file.Name()
+}
+
+func TestContext(t testing.TB) context.Context {
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+	return ctx
 }
 
 var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")

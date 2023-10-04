@@ -9,8 +9,11 @@ package di
 import (
 	"context"
 	"database/sql"
+	"testing"
 
 	"github.com/google/wire"
+	"github.com/planetary-social/nos-crossposting-service/internal/fixtures"
+	"github.com/planetary-social/nos-crossposting-service/internal/logging"
 	"github.com/planetary-social/nos-crossposting-service/service/adapters"
 	"github.com/planetary-social/nos-crossposting-service/service/adapters/prometheus"
 	"github.com/planetary-social/nos-crossposting-service/service/adapters/pubsub"
@@ -34,23 +37,23 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 		return Service{}, nil, err
 	}
 	diBuildTransactionSqliteAdaptersDependencies := buildTransactionSqliteAdaptersDependencies{}
-	adaptersFactoryFn := newAdaptersFactoryFn(diBuildTransactionSqliteAdaptersDependencies)
-	transactionProvider := sqlite.NewTransactionProvider(db, adaptersFactoryFn)
+	genericAdaptersFactoryFn := newAdaptersFactoryFn(diBuildTransactionSqliteAdaptersDependencies)
+	genericTransactionProvider := sqlite.NewTransactionProvider(db, genericAdaptersFactoryFn)
 	prometheusPrometheus, err := prometheus.NewPrometheus(logger)
 	if err != nil {
 		cleanup()
 		return Service{}, nil, err
 	}
-	saveReceivedEventHandler := app.NewSaveReceivedEventHandler(memoryEventWasAlreadySavedCache, transactionProvider, logger, prometheusPrometheus)
-	getRelaysHandler := app.NewGetRelaysHandler(transactionProvider, prometheusPrometheus)
-	getPublicKeysHandler := app.NewGetPublicKeysHandler(transactionProvider, prometheusPrometheus)
-	getTokensHandler := app.NewGetTokensHandler(transactionProvider, prometheusPrometheus)
+	saveReceivedEventHandler := app.NewSaveReceivedEventHandler(memoryEventWasAlreadySavedCache, genericTransactionProvider, logger, prometheusPrometheus)
+	getRelaysHandler := app.NewGetRelaysHandler(genericTransactionProvider, prometheusPrometheus)
+	getPublicKeysHandler := app.NewGetPublicKeysHandler(genericTransactionProvider, prometheusPrometheus)
+	getTokensHandler := app.NewGetTokensHandler(genericTransactionProvider, prometheusPrometheus)
 	receivedEventPubSub := pubsub.NewReceivedEventPubSub()
-	getEventsHandler := app.NewGetEventsHandler(transactionProvider, receivedEventPubSub, prometheusPrometheus)
-	getNotificationsHandler := app.NewGetNotificationsHandler(transactionProvider, prometheusPrometheus)
-	getSessionAccountHandler := app.NewGetSessionAccountHandler(transactionProvider, logger, prometheusPrometheus)
+	getEventsHandler := app.NewGetEventsHandler(genericTransactionProvider, receivedEventPubSub, prometheusPrometheus)
+	getNotificationsHandler := app.NewGetNotificationsHandler(genericTransactionProvider, prometheusPrometheus)
+	getSessionAccountHandler := app.NewGetSessionAccountHandler(genericTransactionProvider, logger, prometheusPrometheus)
 	idGenerator := adapters.NewIDGenerator()
-	loginOrRegisterHandler := app.NewLoginOrRegisterHandler(transactionProvider, idGenerator, idGenerator, logger, prometheusPrometheus)
+	loginOrRegisterHandler := app.NewLoginOrRegisterHandler(genericTransactionProvider, idGenerator, idGenerator, logger, prometheusPrometheus)
 	application := app.Application{
 		SaveReceivedEvent: saveReceivedEventHandler,
 		GetRelays:         getRelaysHandler,
@@ -81,23 +84,23 @@ func BuildIntegrationService(contextContext context.Context, configConfig config
 		return IntegrationService{}, nil, err
 	}
 	diBuildTransactionSqliteAdaptersDependencies := buildTransactionSqliteAdaptersDependencies{}
-	adaptersFactoryFn := newAdaptersFactoryFn(diBuildTransactionSqliteAdaptersDependencies)
-	transactionProvider := sqlite.NewTransactionProvider(db, adaptersFactoryFn)
+	genericAdaptersFactoryFn := newAdaptersFactoryFn(diBuildTransactionSqliteAdaptersDependencies)
+	genericTransactionProvider := sqlite.NewTransactionProvider(db, genericAdaptersFactoryFn)
 	prometheusPrometheus, err := prometheus.NewPrometheus(logger)
 	if err != nil {
 		cleanup()
 		return IntegrationService{}, nil, err
 	}
-	saveReceivedEventHandler := app.NewSaveReceivedEventHandler(memoryEventWasAlreadySavedCache, transactionProvider, logger, prometheusPrometheus)
-	getRelaysHandler := app.NewGetRelaysHandler(transactionProvider, prometheusPrometheus)
-	getPublicKeysHandler := app.NewGetPublicKeysHandler(transactionProvider, prometheusPrometheus)
-	getTokensHandler := app.NewGetTokensHandler(transactionProvider, prometheusPrometheus)
+	saveReceivedEventHandler := app.NewSaveReceivedEventHandler(memoryEventWasAlreadySavedCache, genericTransactionProvider, logger, prometheusPrometheus)
+	getRelaysHandler := app.NewGetRelaysHandler(genericTransactionProvider, prometheusPrometheus)
+	getPublicKeysHandler := app.NewGetPublicKeysHandler(genericTransactionProvider, prometheusPrometheus)
+	getTokensHandler := app.NewGetTokensHandler(genericTransactionProvider, prometheusPrometheus)
 	receivedEventPubSub := pubsub.NewReceivedEventPubSub()
-	getEventsHandler := app.NewGetEventsHandler(transactionProvider, receivedEventPubSub, prometheusPrometheus)
-	getNotificationsHandler := app.NewGetNotificationsHandler(transactionProvider, prometheusPrometheus)
-	getSessionAccountHandler := app.NewGetSessionAccountHandler(transactionProvider, logger, prometheusPrometheus)
+	getEventsHandler := app.NewGetEventsHandler(genericTransactionProvider, receivedEventPubSub, prometheusPrometheus)
+	getNotificationsHandler := app.NewGetNotificationsHandler(genericTransactionProvider, prometheusPrometheus)
+	getSessionAccountHandler := app.NewGetSessionAccountHandler(genericTransactionProvider, logger, prometheusPrometheus)
 	idGenerator := adapters.NewIDGenerator()
-	loginOrRegisterHandler := app.NewLoginOrRegisterHandler(transactionProvider, idGenerator, idGenerator, logger, prometheusPrometheus)
+	loginOrRegisterHandler := app.NewLoginOrRegisterHandler(genericTransactionProvider, idGenerator, idGenerator, logger, prometheusPrometheus)
 	application := app.Application{
 		SaveReceivedEvent: saveReceivedEventHandler,
 		GetRelays:         getRelaysHandler,
@@ -120,6 +123,32 @@ func BuildIntegrationService(contextContext context.Context, configConfig config
 	}, nil
 }
 
+func BuildTestAdapters(contextContext context.Context, tb testing.TB) (sqlite.TestedItems, func(), error) {
+	configConfig, err := newTestAdaptersConfig(tb)
+	if err != nil {
+		return sqlite.TestedItems{}, nil, err
+	}
+	logger, err := newLogger(configConfig)
+	if err != nil {
+		return sqlite.TestedItems{}, nil, err
+	}
+	db, cleanup, err := newSqliteDB(configConfig, logger)
+	if err != nil {
+		return sqlite.TestedItems{}, nil, err
+	}
+	diBuildTransactionSqliteAdaptersDependencies := buildTransactionSqliteAdaptersDependencies{}
+	genericAdaptersFactoryFn := newTestAdaptersFactoryFn(diBuildTransactionSqliteAdaptersDependencies)
+	genericTransactionProvider := sqlite.NewTestTransactionProvider(db, genericAdaptersFactoryFn)
+	migrations := sqlite.NewMigrations(db)
+	testedItems := sqlite.TestedItems{
+		TransactionProvider: genericTransactionProvider,
+		Migrations:          migrations,
+	}
+	return testedItems, func() {
+		cleanup()
+	}, nil
+}
+
 func buildTransactionSqliteAdapters(db *sql.DB, tx *sql.Tx, diBuildTransactionSqliteAdaptersDependencies buildTransactionSqliteAdaptersDependencies) (app.Adapters, error) {
 	accountRepository, err := sqlite.NewAccountRepository(tx)
 	if err != nil {
@@ -136,10 +165,30 @@ func buildTransactionSqliteAdapters(db *sql.DB, tx *sql.Tx, diBuildTransactionSq
 	return appAdapters, nil
 }
 
+func buildTestTransactionSqliteAdapters(db *sql.DB, tx *sql.Tx, diBuildTransactionSqliteAdaptersDependencies buildTransactionSqliteAdaptersDependencies) (sqlite.TestAdapters, error) {
+	sessionRepository, err := sqlite.NewSessionRepository(tx)
+	if err != nil {
+		return sqlite.TestAdapters{}, err
+	}
+	accountRepository, err := sqlite.NewAccountRepository(tx)
+	if err != nil {
+		return sqlite.TestAdapters{}, err
+	}
+	testAdapters := sqlite.TestAdapters{
+		SessionRepository: sessionRepository,
+		AccountRepository: accountRepository,
+	}
+	return testAdapters, nil
+}
+
 // wire.go:
 
 type IntegrationService struct {
 	Service Service
+}
+
+func newTestAdaptersConfig(tb testing.TB) (config.Config, error) {
+	return config.NewConfig(fixtures.SomeString(), fixtures.SomeString(), config.EnvironmentDevelopment, logging.LevelDebug, fixtures.SomeString(), fixtures.SomeString(), fixtures.SomeFile(tb))
 }
 
 type buildTransactionSqliteAdaptersDependencies struct {

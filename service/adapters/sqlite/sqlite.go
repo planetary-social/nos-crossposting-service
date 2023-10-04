@@ -11,6 +11,16 @@ import (
 	"github.com/planetary-social/nos-crossposting-service/service/config"
 )
 
+type TestAdapters struct {
+	SessionRepository *SessionRepository
+	AccountRepository *AccountRepository
+}
+
+type TestedItems struct {
+	TransactionProvider *TestTransactionProvider
+	Migrations          *Migrations
+}
+
 func Open(config config.Config) (*sql.DB, error) {
 	db, err := sql.Open("sqlite3", config.DatabasePath())
 	if err != nil {
@@ -20,12 +30,8 @@ func Open(config config.Config) (*sql.DB, error) {
 	return db, nil
 }
 
-type AdaptersFactoryFn func(*sql.DB, *sql.Tx) (app.Adapters, error)
-
-type TransactionProvider struct {
-	db *sql.DB
-	fn AdaptersFactoryFn
-}
+type AdaptersFactoryFn = GenericAdaptersFactoryFn[app.Adapters]
+type TransactionProvider = GenericTransactionProvider[app.Adapters]
 
 func NewTransactionProvider(db *sql.DB, fn AdaptersFactoryFn) *TransactionProvider {
 	return &TransactionProvider{
@@ -34,7 +40,31 @@ func NewTransactionProvider(db *sql.DB, fn AdaptersFactoryFn) *TransactionProvid
 	}
 }
 
-func (t *TransactionProvider) Transact(ctx context.Context, f func(context.Context, app.Adapters) error) error {
+type TestAdaptersFactoryFn = GenericAdaptersFactoryFn[TestAdapters]
+type TestTransactionProvider = GenericTransactionProvider[TestAdapters]
+
+func NewTestTransactionProvider(db *sql.DB, fn TestAdaptersFactoryFn) *TestTransactionProvider {
+	return &TestTransactionProvider{
+		db: db,
+		fn: fn,
+	}
+}
+
+type GenericAdaptersFactoryFn[T any] func(*sql.DB, *sql.Tx) (T, error)
+
+type GenericTransactionProvider[T any] struct {
+	db *sql.DB
+	fn GenericAdaptersFactoryFn[T]
+}
+
+func NewGenericTransactionProvider[T any](db *sql.DB, fn GenericAdaptersFactoryFn[T]) *GenericTransactionProvider[T] {
+	return &GenericTransactionProvider[T]{
+		db: db,
+		fn: fn,
+	}
+}
+
+func (t *GenericTransactionProvider[T]) Transact(ctx context.Context, f func(context.Context, T) error) error {
 	tx, err := t.db.BeginTx(ctx, nil)
 	if err != nil {
 		return errors.Wrap(err, "error starting the transaction")

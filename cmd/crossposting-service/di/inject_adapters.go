@@ -31,6 +31,21 @@ var sqliteAdaptersSet = wire.NewSet(
 	wire.Struct(new(buildTransactionSqliteAdaptersDependencies), "*"),
 )
 
+var sqliteTestAdaptersSet = wire.NewSet(
+	newSqliteDB,
+
+	sqlite.NewTestTransactionProvider,
+
+	newTestAdaptersFactoryFn,
+
+	sqlite.NewMigrations,
+
+	//firestore.NewWatermillSubscriber,
+	//wire.Bind(new(firestorepubsub.FirestoreSubscriber), new(*watermillfirestore.Subscriber)),
+
+	wire.Struct(new(buildTransactionSqliteAdaptersDependencies), "*"),
+)
+
 var sqliteTxAdaptersSet = wire.NewSet(
 	sqlite.NewAccountRepository,
 	wire.Bind(new(app.AccountRepository), new(*sqlite.AccountRepository)),
@@ -74,6 +89,12 @@ var integrationAdaptersSet = wire.NewSet(
 func newAdaptersFactoryFn(deps buildTransactionSqliteAdaptersDependencies) sqlite.AdaptersFactoryFn {
 	return func(db *sql.DB, tx *sql.Tx) (app.Adapters, error) {
 		return buildTransactionSqliteAdapters(db, tx, deps)
+	}
+}
+
+func newTestAdaptersFactoryFn(deps buildTransactionSqliteAdaptersDependencies) sqlite.TestAdaptersFactoryFn {
+	return func(db *sql.DB, tx *sql.Tx) (sqlite.TestAdapters, error) {
+		return buildTestTransactionSqliteAdapters(db, tx, deps)
 	}
 }
 

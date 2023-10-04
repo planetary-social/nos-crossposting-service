@@ -13,6 +13,14 @@ func NewAccountID(id string) (AccountID, error) {
 	return AccountID{id: id}, nil
 }
 
+func MustNewAccountID(id string) AccountID {
+	v, err := NewAccountID(id)
+	if err != nil {
+		panic(err)
+	}
+	return v
+}
+
 func (i AccountID) String() string {
 	return i.id
 }
