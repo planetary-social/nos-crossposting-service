@@ -47,6 +47,14 @@ func NewSessionID(id string) (SessionID, error) {
 	return SessionID{id: id}, nil
 }
 
+func MustNewSessionID(id string) SessionID {
+	v, err := NewSessionID(id)
+	if err != nil {
+		panic(err)
+	}
+	return v
+}
+
 func (i SessionID) String() string {
 	return i.id
 }

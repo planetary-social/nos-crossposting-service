@@ -13,6 +13,7 @@ import (
 	"github.com/planetary-social/nos-crossposting-service/internal"
 	"github.com/planetary-social/nos-crossposting-service/service/domain"
 	"github.com/planetary-social/nos-crossposting-service/service/domain/accounts"
+	"github.com/planetary-social/nos-crossposting-service/service/domain/sessions"
 )
 
 func Context(tb testing.TB) context.Context {
@@ -64,6 +65,10 @@ func SomeAPNSToken() domain.APNSToken {
 
 func SomeAccountID() accounts.AccountID {
 	return accounts.MustNewAccountID(SomeHexBytesOfLen(10))
+}
+
+func SomeSessionID() sessions.SessionID {
+	return sessions.MustNewSessionID(SomeHexBytesOfLen(10))
 }
 
 func SomeTwitterID() accounts.TwitterID {

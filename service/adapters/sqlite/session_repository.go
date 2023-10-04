@@ -34,7 +34,7 @@ WHERE session_id=$1`,
 func (m *SessionRepository) Save(session *sessions.Session) error {
 	_, err := m.tx.Exec(`
 INSERT INTO sessions(session_id, account_id, created_at)
-VALUES('$1','$2', '$3')
+VALUES($1, $2, $3)
 ON CONFLICT(session_id) DO UPDATE SET
   account_id=excluded.account_id,
   created_at=excluded.created_at`,

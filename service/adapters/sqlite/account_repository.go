@@ -43,7 +43,7 @@ WHERE account_id=$1`,
 func (m *AccountRepository) Save(account *accounts.Account) error {
 	_, err := m.tx.Exec(`
 INSERT INTO accounts(account_id, twitter_id)
-VALUES('$1','$2')
+VALUES($1, $2)
 ON CONFLICT(account_id) DO UPDATE SET
   twitter_id=excluded.twitter_id`,
 		account.AccountID().String(),
