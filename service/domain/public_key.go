@@ -2,10 +2,10 @@ package domain
 
 import (
 	"encoding/hex"
-	"github.com/nbd-wtf/go-nostr/nip19"
 
 	"github.com/boreq/errors"
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
+	"github.com/nbd-wtf/go-nostr/nip19"
 )
 
 type PublicKey struct {

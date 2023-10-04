@@ -10,13 +10,6 @@ import (
 var applicationSet = wire.NewSet(
 	wire.Struct(new(app.Application), "*"),
 
-	commandsSet,
-	queriesSet,
-)
-
-var commandsSet = wire.NewSet(
-	wire.Struct(new(app.Commands), "*"),
-
 	app.NewSaveRegistrationHandler,
 
 	app.NewSaveReceivedEventHandler,
@@ -24,14 +17,13 @@ var commandsSet = wire.NewSet(
 
 	app.NewProcessSavedEventHandler,
 	wire.Bind(new(firestorepubsub.ProcessSavedEventHandler), new(*app.ProcessSavedEventHandler)),
-)
-
-var queriesSet = wire.NewSet(
-	wire.Struct(new(app.Queries), "*"),
 
 	app.NewGetRelaysHandler,
 	app.NewGetPublicKeysHandler,
 	app.NewGetTokensHandler,
 	app.NewGetEventsHandler,
 	app.NewGetNotificationsHandler,
+
+	app.NewGetSessionAccountHandler,
+	app.NewLoginOrRegisterHandler,
 )

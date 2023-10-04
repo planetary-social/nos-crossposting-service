@@ -2,7 +2,6 @@ package prometheus
 
 import (
 	"runtime/debug"
-	"strconv"
 	"time"
 
 	"github.com/boreq/errors"
@@ -24,8 +23,6 @@ const (
 	labelResultSuccess              = "success"
 	labelResultError                = "error"
 	labelResultInvalidPointerPassed = "invalidPointerPassed"
-
-	labelStatusCode = "statusCode"
 )
 
 type Prometheus struct {
@@ -33,7 +30,6 @@ type Prometheus struct {
 	applicationHandlerCallDurationHistogram *prometheus.HistogramVec
 	relayDownloaderStateGauge               *prometheus.GaugeVec
 	subscriptionQueueLengthGauge            *prometheus.GaugeVec
-	apnsCallsCounter                        *prometheus.CounterVec
 
 	registry *prometheus.Registry
 
@@ -76,13 +72,6 @@ func NewPrometheus(logger logging.Logger) (*Prometheus, error) {
 		},
 		[]string{labelVcsRevision, labelVcsTime, labelGo},
 	)
-	apnsCallsCounter := prometheus.NewCounterVec(
-		prometheus.CounterOpts{
-			Name: "apns_calls_total",
-			Help: "Total number of calls to APNs.",
-		},
-		[]string{labelStatusCode, labelResult},
-	)
 
 	reg := prometheus.NewRegistry()
 	for _, v := range []prometheus.Collector{
@@ -91,7 +80,6 @@ func NewPrometheus(logger logging.Logger) (*Prometheus, error) {
 		relayDownloaderStateGauge,
 		subscriptionQueueLengthGauge,
 		versionGague,
-		apnsCallsCounter,
 		collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}),
 		collectors.NewGoCollector(),
 	} {
@@ -119,7 +107,6 @@ func NewPrometheus(logger logging.Logger) (*Prometheus, error) {
 		applicationHandlerCallDurationHistogram: applicationHandlerCallDurationHistogram,
 		relayDownloaderStateGauge:               relayDownloaderStateGauge,
 		subscriptionQueueLengthGauge:            subscriptionQueueLengthGauge,
-		apnsCallsCounter:                        apnsCallsCounter,
 
 		registry: reg,
 
@@ -137,18 +124,6 @@ func (p *Prometheus) MeasureRelayDownloadersState(n int, state app.RelayDownload
 
 func (p *Prometheus) ReportSubscriptionQueueLength(topic string, n int) {
 	p.subscriptionQueueLengthGauge.With(prometheus.Labels{labelTopic: topic}).Set(float64(n))
-}
-
-func (p *Prometheus) ReportCallToAPNS(statusCode int, err error) {
-	labels := prometheus.Labels{
-		labelStatusCode: strconv.Itoa(statusCode),
-	}
-	if err == nil {
-		labels[labelResult] = labelResultSuccess
-	} else {
-		labels[labelResult] = labelResultError
-	}
-	p.apnsCallsCounter.With(labels).Inc()
 }
 
 func (p *Prometheus) Registry() *prometheus.Registry {

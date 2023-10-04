@@ -30,7 +30,6 @@ func NewProcessSavedEvent(eventId domain.EventId) ProcessSavedEvent {
 type ProcessSavedEventHandler struct {
 	transactionProvider TransactionProvider
 	generator           *notifications.Generator
-	apns                APNS
 	logger              logging.Logger
 	metrics             Metrics
 }
@@ -38,14 +37,12 @@ type ProcessSavedEventHandler struct {
 func NewProcessSavedEventHandler(
 	transactionProvider TransactionProvider,
 	generator *notifications.Generator,
-	apns APNS,
 	logger logging.Logger,
 	metrics Metrics,
 ) *ProcessSavedEventHandler {
 	return &ProcessSavedEventHandler{
 		transactionProvider: transactionProvider,
 		generator:           generator,
-		apns:                apns,
 		logger:              logger.New("processSavedEventHandler"),
 		metrics:             metrics,
 	}
@@ -161,9 +158,9 @@ func (h *ProcessSavedEventHandler) generateSendAndSaveNotifications(ctx context.
 					}
 
 					for _, notification := range notifications {
-						if err := h.apns.SendNotification(notification); err != nil {
-							return errors.Wrap(err, "error sending a notification")
-						}
+						//if err := h.apns.SendNotification(notification); err != nil {
+						//	return errors.Wrap(err, "error sending a notification")
+						//}
 
 						if err := adapters.Events.SaveNotificationForEvent(notification); err != nil {
 							return errors.Wrap(err, "error saving notification")

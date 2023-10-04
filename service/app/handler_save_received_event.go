@@ -73,9 +73,9 @@ func (h *SaveReceivedEventHandler) Handle(ctx context.Context, cmd SaveReceivedE
 			return errors.Wrap(err, "error saving the event")
 		}
 
-		if err := adapters.Publisher.PublishEventSaved(ctx, cmd.event.Id()); err != nil {
-			return errors.Wrap(err, "error publishing")
-		}
+		//if err := adapters.Publisher.PublishEventSaved(ctx, cmd.event.Id()); err != nil {
+		//	return errors.Wrap(err, "error publishing")
+		//}
 
 		return nil
 	}); err != nil {

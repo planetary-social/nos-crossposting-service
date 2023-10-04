@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"io"
 	"os"
 	"strings"
 
@@ -14,15 +13,12 @@ import (
 const (
 	envPrefix = "NOTIFICATIONS"
 
-	envNostrListenAddress           = "NOSTR_LISTEN_ADDRESS"
-	envMetricsListenAddress         = "METRICS_LISTEN_ADDRESS"
-	envFirestoreProjectID           = "FIRESTORE_PROJECT_ID"
-	envFirestoreCredentialsJSONPath = "FIRESTORE_CREDENTIALS_JSON_PATH"
-	envAPNSTopic                    = "APNS_TOPIC"
-	envAPNSCertificatePath          = "APNS_CERTIFICATE_PATH"
-	envAPNSCertificatePassword      = "APNS_CERTIFICATE_PASSWORD"
-	envEnvironment                  = "ENVIRONMENT"
-	envLogLevel                     = "LOG_LEVEL"
+	envNostrListenAddress   = "NOSTR_LISTEN_ADDRESS"
+	envMetricsListenAddress = "METRICS_LISTEN_ADDRESS"
+	envEnvironment          = "ENVIRONMENT"
+	envLogLevel             = "LOG_LEVEL"
+	envTwitterKey           = "TWITTER_KEY"
+	envTwitterKeySecret     = "TWITTER_KEY_SECRET"
 )
 
 type EnvironmentConfigLoader struct {
@@ -43,31 +39,14 @@ func (c *EnvironmentConfigLoader) Load() (config.Config, error) {
 		return config.Config{}, errors.Wrap(err, "error loading the log level")
 	}
 
-	var firestoreCredentialsJSON []byte
-	if p := c.getenv(envFirestoreCredentialsJSONPath); p != "" {
-		f, err := os.Open(p)
-		if err != nil {
-			return config.Config{}, errors.Wrap(err, "error opening the credentials file")
-		}
-
-		b, err := io.ReadAll(f)
-		if err != nil {
-			return config.Config{}, errors.Wrap(err, "error reading the credentials file")
-		}
-
-		firestoreCredentialsJSON = b
-	}
-
 	return config.NewConfig(
+
 		c.getenv(envNostrListenAddress),
 		c.getenv(envMetricsListenAddress),
-		c.getenv(envFirestoreProjectID),
-		firestoreCredentialsJSON,
-		c.getenv(envAPNSTopic),
-		c.getenv(envAPNSCertificatePath),
-		c.getenv(envAPNSCertificatePassword),
 		environment,
 		logLevel,
+		c.getenv(envTwitterKey),
+		c.getenv(envTwitterKeySecret),
 	)
 }
 

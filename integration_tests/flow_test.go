@@ -14,7 +14,7 @@ import (
 	"github.com/boreq/errors"
 	"github.com/gorilla/websocket"
 	"github.com/nbd-wtf/go-nostr"
-	"github.com/planetary-social/nos-crossposting-service/cmd/notification-service/di"
+	"github.com/planetary-social/nos-crossposting-service/cmd/crossposting-service/di"
 	"github.com/planetary-social/nos-crossposting-service/internal/fixtures"
 	"github.com/planetary-social/nos-crossposting-service/internal/logging"
 	"github.com/planetary-social/nos-crossposting-service/service/app"

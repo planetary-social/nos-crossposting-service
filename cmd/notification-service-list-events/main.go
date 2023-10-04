@@ -3,12 +3,13 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
+
 	"github.com/boreq/errors"
 	"github.com/nbd-wtf/go-nostr"
-	"github.com/planetary-social/nos-crossposting-service/cmd/notification-service/di"
+	"github.com/planetary-social/nos-crossposting-service/cmd/crossposting-service/di"
 	configadapters "github.com/planetary-social/nos-crossposting-service/service/adapters/config"
 	"github.com/planetary-social/nos-crossposting-service/service/domain"
-	"os"
 )
 
 func main() {

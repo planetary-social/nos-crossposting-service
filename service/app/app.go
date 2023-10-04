@@ -4,8 +4,11 @@ import (
 	"context"
 	"time"
 
+	"github.com/boreq/errors"
 	"github.com/planetary-social/nos-crossposting-service/service/domain"
+	"github.com/planetary-social/nos-crossposting-service/service/domain/accounts"
 	"github.com/planetary-social/nos-crossposting-service/service/domain/notifications"
+	"github.com/planetary-social/nos-crossposting-service/service/domain/sessions"
 )
 
 type TransactionProvider interface {
@@ -13,15 +16,37 @@ type TransactionProvider interface {
 }
 
 type Adapters struct {
+	Accounts      AccountRepository
+	Sessions      SessionRepository
 	Registrations RegistrationRepository
 	Relays        RelayRepository
 	PublicKeys    PublicKeyRepository
 	Events        EventRepository
 	Tags          TagRepository
 
-	Publisher Publisher
+	//Publisher Publisher
 }
 
+var ErrAccountDoesNotExist = errors.New("account doesn't exist")
+
+type AccountRepository interface {
+	// Returns ErrAccountDoesNotExist.
+	GetByTwitterID(twitterID accounts.TwitterID) (*accounts.Account, error)
+
+	// Returns ErrAccountDoesNotExist.
+	GetByAccountID(accountID accounts.AccountID) (*accounts.Account, error)
+
+	Save(account *accounts.Account) error
+}
+
+var ErrSessionDoesNotExist = errors.New("session doesn't exist")
+
+type SessionRepository interface {
+	// Returns ErrSessionDoesNotExist.
+	Get(id sessions.SessionID) (*sessions.Session, error)
+
+	Save(session *sessions.Session) error
+}
 type RegistrationRepository interface {
 	Save(registration domain.Registration) error
 }
@@ -48,30 +73,22 @@ type TagRepository interface {
 	Save(event domain.Event, tags []domain.EventTag) error
 }
 
-type Publisher interface {
-	PublishEventSaved(ctx context.Context, id domain.EventId) error
-}
+//type Publisher interface {
+//	PublishEventSaved(ctx context.Context, id domain.EventId) error
+//}
 
 type Application struct {
-	Commands Commands
-	Queries  Queries
-}
-
-type Commands struct {
 	SaveReceivedEvent *SaveReceivedEventHandler
 	SaveRegistration  *SaveRegistrationHandler
-}
 
-type Queries struct {
 	GetRelays        *GetRelaysHandler
 	GetPublicKeys    *GetPublicKeysHandler
 	GetTokens        *GetTokensHandler
 	GetEvents        *GetEventsHandler
 	GetNotifications *GetNotificationsHandler
-}
 
-type APNS interface {
-	SendNotification(notification notifications.Notification) error
+	GetSessionAccount *GetSessionAccountHandler
+	LoginOrRegister   *LoginOrRegisterHandler
 }
 
 type EventOrError struct {
@@ -130,4 +147,12 @@ type ApplicationCall interface {
 type EventWasAlreadySavedCache interface {
 	MarkEventAsAlreadySaved(id domain.EventId)
 	EventWasAlreadySaved(id domain.EventId) bool
+}
+
+type AccountIDGenerator interface {
+	GenerateAccountID() (accounts.AccountID, error)
+}
+
+type SessionIDGenerator interface {
+	GenerateSessionID() (sessions.SessionID, error)
 }

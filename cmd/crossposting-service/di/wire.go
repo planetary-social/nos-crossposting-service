@@ -7,9 +7,7 @@ import (
 	"context"
 
 	googlefirestore "cloud.google.com/go/firestore"
-	"github.com/ThreeDotsLabs/watermill"
 	"github.com/google/wire"
-	"github.com/planetary-social/nos-crossposting-service/service/adapters/apns"
 	"github.com/planetary-social/nos-crossposting-service/service/app"
 	"github.com/planetary-social/nos-crossposting-service/service/config"
 	"github.com/planetary-social/nos-crossposting-service/service/domain/notifications"
@@ -22,8 +20,8 @@ func BuildService(context.Context, config.Config) (Service, func(), error) {
 		portsSet,
 		applicationSet,
 		firestoreAdaptersSet,
-		downloaderSet,
-		generatorSet,
+		//downloaderSet,
+		//generatorSet,
 		pubsubSet,
 		loggingSet,
 		adaptersSet,
@@ -33,8 +31,6 @@ func BuildService(context.Context, config.Config) (Service, func(), error) {
 
 type IntegrationService struct {
 	Service Service
-
-	MockAPNS *apns.APNSMock
 }
 
 func BuildIntegrationService(context.Context, config.Config) (IntegrationService, func(), error) {
@@ -46,8 +42,8 @@ func BuildIntegrationService(context.Context, config.Config) (IntegrationService
 		portsSet,
 		applicationSet,
 		firestoreAdaptersSet,
-		downloaderSet,
-		generatorSet,
+		//downloaderSet,
+		//generatorSet,
 		pubsubSet,
 		loggingSet,
 		integrationAdaptersSet,
@@ -56,13 +52,13 @@ func BuildIntegrationService(context.Context, config.Config) (IntegrationService
 }
 
 type buildTransactionFirestoreAdaptersDependencies struct {
-	LoggerAdapter watermill.LoggerAdapter
+	//LoggerAdapter watermill.LoggerAdapter
 }
 
 func buildTransactionFirestoreAdapters(client *googlefirestore.Client, tx *googlefirestore.Transaction, deps buildTransactionFirestoreAdaptersDependencies) (app.Adapters, error) {
 	wire.Build(
 		wire.Struct(new(app.Adapters), "*"),
-		wire.FieldsOf(new(buildTransactionFirestoreAdaptersDependencies), "LoggerAdapter"),
+		//wire.FieldsOf(new(buildTransactionFirestoreAdaptersDependencies), "LoggerAdapter"),
 
 		firestoreTxAdaptersSet,
 	)

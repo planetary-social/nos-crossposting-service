@@ -2,18 +2,26 @@ package http
 
 import (
 	"context"
+	"embed"
 	"fmt"
+	"html/template"
 	"net"
 	"net/http"
 
 	"github.com/boreq/errors"
-	"github.com/gorilla/websocket"
-	"github.com/nbd-wtf/go-nostr"
+	"github.com/dghubble/gologin/v2/twitter"
+	"github.com/dghubble/oauth1"
+	twitterOAuth1 "github.com/dghubble/oauth1/twitter"
 	"github.com/planetary-social/nos-crossposting-service/internal/logging"
 	"github.com/planetary-social/nos-crossposting-service/service/app"
 	"github.com/planetary-social/nos-crossposting-service/service/config"
-	"github.com/planetary-social/nos-crossposting-service/service/domain"
+	"github.com/planetary-social/nos-crossposting-service/service/domain/accounts"
 )
+
+//go:embed templates/*
+var templatesFS embed.FS
+
+var t = template.Must(template.ParseFS(templatesFS, "templates/*.tmpl"))
 
 type Server struct {
 	config config.Config
@@ -34,10 +42,10 @@ func NewServer(
 }
 
 func (s *Server) ListenAndServe(ctx context.Context) error {
-	mux := s.createMux(ctx)
+	mux := s.createMux()
 
 	var listenConfig net.ListenConfig
-	listener, err := listenConfig.Listen(ctx, "tcp", s.config.NostrListenAddress())
+	listener, err := listenConfig.Listen(ctx, "tcp", s.config.ListenAddress())
 	if err != nil {
 		return errors.Wrap(err, "error listening")
 	}
@@ -52,138 +60,109 @@ func (s *Server) ListenAndServe(ctx context.Context) error {
 	return http.Serve(listener, mux)
 }
 
-func (s *Server) createMux(ctx context.Context) *http.ServeMux {
+func (s *Server) createMux() *http.ServeMux {
+	config := &oauth1.Config{
+		ConsumerKey:    s.config.TwitterKey(),
+		ConsumerSecret: s.config.TwitterKeySecret(),
+		CallbackURL:    "http://localhost:8008/callback", // todo config?
+		Endpoint:       twitterOAuth1.AuthorizeEndpoint,
+	}
+
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		s.serveWs(ctx, w, r)
-	})
+	mux.HandleFunc("/", s.serveIndex)
+	mux.Handle("/login", twitter.LoginHandler(config, nil))
+	mux.Handle("/callback", twitter.CallbackHandler(config, s.issueSession(), nil))
 	return mux
 }
 
-func (s *Server) serveWs(ctx context.Context, rw http.ResponseWriter, r *http.Request) {
-	var upgrader = websocket.Upgrader{
-		ReadBufferSize:  1024,
-		WriteBufferSize: 1024,
-	}
-
-	conn, err := upgrader.Upgrade(rw, r, nil)
+func (s *Server) serveIndex(w http.ResponseWriter, r *http.Request) {
+	account, err := s.getAccountFromRequest(r)
 	if err != nil {
-		s.logger.Error().WithError(err).Message("error upgrading the connection")
+		s.renderError(w, err)
 		return
 	}
 
-	defer func() {
-		if err := conn.Close(); err != nil {
-			s.logger.Error().WithError(err).Message("error closing the connection")
-		}
-	}()
+	data := s.templateDataFromAccount(account)
 
-	if err := s.handleConnection(ctx, conn); err != nil {
-		closeErr := &websocket.CloseError{}
-		if !errors.As(err, &closeErr) || closeErr.Code != websocket.CloseNormalClosure {
-			s.logger.Error().WithError(err).Message("error handling the connection")
-		}
+	if err := t.ExecuteTemplate(w, "index.tmpl", data); err != nil {
+		s.logger.Error().WithError(err).Message("error rendering index")
 	}
 }
 
-func (s *Server) handleConnection(ctx context.Context, conn *websocket.Conn) error {
-	s.logger.Debug().Message("accepted websocket connection")
+func (s *Server) renderError(w http.ResponseWriter, err error) {
+	w.WriteHeader(http.StatusInternalServerError)
+	w.Write([]byte("error"))
+}
 
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	subscriptions := make(map[string]context.CancelFunc)
-
-	for {
-		_, messageBytes, err := conn.ReadMessage()
+func (s *Server) issueSession() http.Handler {
+	fn := func(w http.ResponseWriter, req *http.Request) {
+		ctx := req.Context()
+		twitterUser, err := twitter.UserFromContext(ctx)
 		if err != nil {
-			return errors.Wrap(err, "error reading the websocket message")
-		}
-
-		message := nostr.ParseMessage(messageBytes)
-		if message == nil {
-			return errors.New("failed to parse the message")
-		}
-
-		switch v := message.(type) {
-		case *nostr.EventEnvelope:
-			event, err := domain.NewEvent(v.Event)
-			if err != nil {
-				return errors.Wrap(err, "error creating an event")
-			}
-
-			registration, err := domain.NewRegistrationFromEvent(event)
-			if err != nil {
-				return errors.Wrap(err, "error creating a registration")
-			}
-
-			cmd := app.NewSaveRegistration(
-				registration,
-			)
-
-			if err := s.app.Commands.SaveRegistration.Handle(ctx, cmd); err != nil {
-				return errors.Wrap(err, "error handling the registration command")
-			}
-		case *nostr.ReqEnvelope:
-			filters, err := domain.NewFilters(v.Filters)
-			if err != nil {
-				return errors.Wrap(err, "error creating filters")
-			}
-
-			s.closeSubscription(subscriptions, v.SubscriptionID)
-
-			subCtx, subCancel := context.WithCancel(ctx)
-			go s.sendEvents(subCtx, conn, filters, v.SubscriptionID)
-			subscriptions[v.SubscriptionID] = subCancel
-		case *nostr.CloseEnvelope:
-			s.closeSubscription(subscriptions, string(*v))
-		default:
-			s.logger.Error().WithField("message", message).Message("received an unknown message")
-		}
-	}
-}
-
-func (s *Server) sendEvents(ctx context.Context, conn *websocket.Conn, filters domain.Filters, subscriptionName string) {
-	if err := s.sendEventsErr(ctx, conn, filters, subscriptionName); err != nil {
-		if !errors.Is(err, context.Canceled) {
-			s.logger.Error().WithError(err).Message("get events returned an error")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+
+		twitterID := accounts.NewTwitterID(twitterUser.ID)
+		cmd := app.NewLoginOrRegister(twitterID)
+
+		session, err := s.app.LoginOrRegister.Handle(req.Context(), cmd)
+		if err != nil {
+			s.renderError(w, err)
+			return
+		}
+
+		SetSessionIDToCookie(w, session.SessionID())
+
+		s.logger.Debug().
+			WithField("twitterID", twitterID.Int64()).
+			WithField("accountID", session.AccountID().String()).
+			WithField("sessionID", session.SessionID().String()).
+			Message("issuing a session")
+
+		http.Redirect(w, req, "/", http.StatusFound)
+	}
+	return http.HandlerFunc(fn)
+}
+
+func (s *Server) getAccountFromRequest(r *http.Request) (*accounts.Account, error) {
+	sessionID, err := GetSessionIDFromCookie(r)
+	if err != nil {
+		if errors.Is(err, ErrNoSessionID) {
+			return nil, nil
+		}
+		return nil, errors.Wrap(err, "error getting the session id from cookie")
+	}
+
+	cmd := app.NewGetSessionAccount(sessionID)
+
+	account, err := s.app.GetSessionAccount.Handle(r.Context(), cmd)
+	if err != nil {
+		if errors.Is(err, app.ErrSessionDoesNotExist) {
+			return nil, nil
+		}
+		return nil, errors.Wrap(err, "error getting the account")
+	}
+
+	return account, nil
+}
+
+func (s *Server) templateDataFromAccount(account *accounts.Account) map[string]any {
+	if account == nil {
+		return map[string]any{
+			"account": nil,
+		}
+	}
+
+	return map[string]any{
+		"account": accountTransport{
+			AccountID: account.AccountID().String(),
+			TwitterID: account.TwitterID().Int64(),
+		},
 	}
 }
 
-func (s *Server) sendEventsErr(ctx context.Context, conn *websocket.Conn, filters domain.Filters, subscriptionName string) error {
-	for event := range s.app.Queries.GetEvents.Handle(ctx, filters) {
-		if err := event.Err(); err != nil {
-			return errors.Wrap(err, "received an error")
-		}
-
-		if event.EOSE() {
-			envelope := nostr.EOSEEnvelope(subscriptionName)
-
-			if err := conn.WriteJSON(envelope); err != nil {
-				return errors.Wrap(err, "error writing EOSE")
-			}
-
-			continue
-		}
-
-		envelope := nostr.EventEnvelope{
-			SubscriptionID: &subscriptionName,
-			Event:          event.Event().Libevent(),
-		}
-
-		if err := conn.WriteJSON(envelope); err != nil {
-			return errors.Wrap(err, "error writing an event")
-		}
-	}
-
-	return nil
-}
-
-func (s *Server) closeSubscription(subscriptions map[string]context.CancelFunc, subscriptionName string) {
-	if cancel, ok := subscriptions[subscriptionName]; ok {
-		cancel()
-		delete(subscriptions, subscriptionName)
-	}
+type accountTransport struct {
+	AccountID string
+	TwitterID int64
 }

@@ -1,0 +1,7 @@
+template index
+
+{{ if .account }}
+    logged in as {{ .account.AccountID }}
+{{ else }}
+    not logged in
+{{ end  }}
