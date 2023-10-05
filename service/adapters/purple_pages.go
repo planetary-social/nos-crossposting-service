@@ -9,6 +9,8 @@ import (
 	"github.com/planetary-social/nos-crossposting-service/service/domain"
 )
 
+var ErrRelayListNotFoundInPurplePages = errors.New("relay list not found in purple pages")
+
 var purplePagesAddress = domain.MustNewRelayAddress("wss://purplepag.es")
 
 type PurplePages struct {
@@ -26,13 +28,13 @@ func NewPurplePages(ctx context.Context, logger logging.Logger) (*PurplePages, e
 	}, nil
 }
 
-func (p PurplePages) GetRelays(ctx context.Context, publicKey domain.PublicKey) ([]domain.RelayAddress, error) {
+func (p *PurplePages) GetRelays(ctx context.Context, publicKey domain.PublicKey) ([]domain.RelayAddress, error) {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
 	for eventOrEOSE := range p.connection.GetEvents(ctx, publicKey, []domain.EventKind{domain.EventKindRelayListMetadata}, nil) {
 		if eventOrEOSE.EOSE() {
-			return nil, errors.New("relay list not found")
+			return nil, ErrRelayListNotFoundInPurplePages
 		}
 
 		if eventOrEOSE.Event().Kind() == domain.EventKindRelayListMetadata {

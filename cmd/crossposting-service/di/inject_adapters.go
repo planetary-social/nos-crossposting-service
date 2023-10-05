@@ -57,8 +57,9 @@ var adaptersSet = wire.NewSet(
 	wire.Bind(new(app.SessionIDGenerator), new(*adapters.IDGenerator)),
 	wire.Bind(new(app.AccountIDGenerator), new(*adapters.IDGenerator)),
 
+	adapters.NewRelaySource,
 	adapters.NewPurplePages,
-	wire.Bind(new(app.RelaySource), new(*adapters.PurplePages)),
+	wire.Bind(new(app.RelaySource), new(*adapters.RelaySource)),
 
 	adapters.NewRelayEventDownloader,
 	wire.Bind(new(app.RelayEventDownloader), new(*adapters.RelayEventDownloader)),

@@ -11,22 +11,6 @@ var (
 	tagRelay   = MustNewEventTagName("r")
 )
 
-func GetMentionsFromTags(tags []EventTag) ([]PublicKey, error) {
-	var mentions []PublicKey
-
-	for _, tag := range tags {
-		if tag.IsProfile() {
-			pubKey, err := tag.Profile()
-			if err != nil {
-				return nil, errors.Wrapf(err, "error getting public key from tag '%+v'", tag)
-			}
-			mentions = append(mentions, pubKey)
-		}
-	}
-
-	return mentions, nil
-}
-
 type EventTag struct {
 	name EventTagName
 	tag  []string

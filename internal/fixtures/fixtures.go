@@ -69,14 +69,6 @@ func SomeString() string {
 	return randSeq(10)
 }
 
-func SomeAPNSToken() domain.APNSToken {
-	v, err := domain.NewAPNSTokenFromHex(SomeHexBytesOfLen(10 + rand.Intn(10)))
-	if err != nil {
-		panic(err)
-	}
-	return v
-}
-
 func SomeAccountID() accounts.AccountID {
 	return accounts.MustNewAccountID(SomeHexBytesOfLen(10))
 }

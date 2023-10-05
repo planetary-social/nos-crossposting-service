@@ -5,6 +5,14 @@ import (
 	"github.com/planetary-social/nos-crossposting-service/internal"
 )
 
+var (
+	EventKindMetadata               = MustNewEventKind(0)
+	EventKindNote                   = MustNewEventKind(1)
+	EventKindReaction               = MustNewEventKind(7)
+	EventKindEncryptedDirectMessage = MustNewEventKind(4)
+	EventKindRelayListMetadata      = MustNewEventKind(10002)
+)
+
 var eventKindsToDownload = internal.NewSet([]EventKind{EventKindNote})
 
 func EventKindsToDownload() []EventKind {
@@ -14,14 +22,6 @@ func EventKindsToDownload() []EventKind {
 func ShouldDownloadEventKind(eventKind EventKind) bool {
 	return eventKindsToDownload.Contains(eventKind)
 }
-
-var (
-	EventKindMetadata               = MustNewEventKind(0)
-	EventKindNote                   = MustNewEventKind(1)
-	EventKindReaction               = MustNewEventKind(7)
-	EventKindEncryptedDirectMessage = MustNewEventKind(4)
-	EventKindRelayListMetadata      = MustNewEventKind(10002)
-)
 
 type EventKind struct {
 	k int

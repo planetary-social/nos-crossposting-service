@@ -239,17 +239,17 @@ func (d *PublicKeyDownloader) refreshRelays(longCtx context.Context) error {
 	fnCtx, fnCtxCancel := context.WithCancel(longCtx)
 	defer fnCtxCancel()
 
-	relayAddressess, err := d.relaySource.GetRelays(fnCtx, d.publicKey)
+	relayAddresses, err := d.relaySource.GetRelays(fnCtx, d.publicKey)
 	if err != nil {
-		return errors.Wrap(err, "error getting relayAddressess")
+		return errors.Wrap(err, "error getting relayAddresses")
 	}
 
 	d.logger.Debug().
-		WithField("numberOfAddresses", len(relayAddressess)).
+		WithField("numberOfAddresses", len(relayAddresses)).
 		WithField("publicKey", d.publicKey.Hex()).
 		Message("got relay addresses")
 
-	relayAddressesSet := internal.NewSet(relayAddressess)
+	relayAddressesSet := internal.NewSet(relayAddresses)
 
 	d.downloadersLock.Lock()
 	defer d.downloadersLock.Unlock()
