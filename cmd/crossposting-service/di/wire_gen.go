@@ -54,6 +54,7 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 	getSessionAccountHandler := app.NewGetSessionAccountHandler(genericTransactionProvider, logger, prometheusPrometheus)
 	idGenerator := adapters.NewIDGenerator()
 	loginOrRegisterHandler := app.NewLoginOrRegisterHandler(genericTransactionProvider, idGenerator, idGenerator, logger, prometheusPrometheus)
+	linkPublicKeyHandler := app.NewLinkPublicKeyHandler(genericTransactionProvider, logger, prometheusPrometheus)
 	application := app.Application{
 		SaveReceivedEvent: saveReceivedEventHandler,
 		GetRelays:         getRelaysHandler,
@@ -63,6 +64,7 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 		GetNotifications:  getNotificationsHandler,
 		GetSessionAccount: getSessionAccountHandler,
 		LoginOrRegister:   loginOrRegisterHandler,
+		LinkPublicKey:     linkPublicKeyHandler,
 	}
 	server := http.NewServer(configConfig, application, logger)
 	metricsServer := http.NewMetricsServer(prometheusPrometheus, configConfig, logger)
@@ -101,6 +103,7 @@ func BuildIntegrationService(contextContext context.Context, configConfig config
 	getSessionAccountHandler := app.NewGetSessionAccountHandler(genericTransactionProvider, logger, prometheusPrometheus)
 	idGenerator := adapters.NewIDGenerator()
 	loginOrRegisterHandler := app.NewLoginOrRegisterHandler(genericTransactionProvider, idGenerator, idGenerator, logger, prometheusPrometheus)
+	linkPublicKeyHandler := app.NewLinkPublicKeyHandler(genericTransactionProvider, logger, prometheusPrometheus)
 	application := app.Application{
 		SaveReceivedEvent: saveReceivedEventHandler,
 		GetRelays:         getRelaysHandler,
@@ -110,6 +113,7 @@ func BuildIntegrationService(contextContext context.Context, configConfig config
 		GetNotifications:  getNotificationsHandler,
 		GetSessionAccount: getSessionAccountHandler,
 		LoginOrRegister:   loginOrRegisterHandler,
+		LinkPublicKey:     linkPublicKeyHandler,
 	}
 	server := http.NewServer(configConfig, application, logger)
 	metricsServer := http.NewMetricsServer(prometheusPrometheus, configConfig, logger)
@@ -158,9 +162,14 @@ func buildTransactionSqliteAdapters(db *sql.DB, tx *sql.Tx, diBuildTransactionSq
 	if err != nil {
 		return app.Adapters{}, err
 	}
+	publicKeyRepository, err := sqlite.NewPublicKeyRepository(tx)
+	if err != nil {
+		return app.Adapters{}, err
+	}
 	appAdapters := app.Adapters{
-		Accounts: accountRepository,
-		Sessions: sessionRepository,
+		Accounts:   accountRepository,
+		Sessions:   sessionRepository,
+		PublicKeys: publicKeyRepository,
 	}
 	return appAdapters, nil
 }
@@ -174,9 +183,14 @@ func buildTestTransactionSqliteAdapters(db *sql.DB, tx *sql.Tx, diBuildTransacti
 	if err != nil {
 		return sqlite.TestAdapters{}, err
 	}
+	publicKeyRepository, err := sqlite.NewPublicKeyRepository(tx)
+	if err != nil {
+		return sqlite.TestAdapters{}, err
+	}
 	testAdapters := sqlite.TestAdapters{
-		SessionRepository: sessionRepository,
-		AccountRepository: accountRepository,
+		SessionRepository:   sessionRepository,
+		AccountRepository:   accountRepository,
+		PublicKeyRepository: publicKeyRepository,
 	}
 	return testAdapters, nil
 }

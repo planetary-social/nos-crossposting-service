@@ -16,15 +16,9 @@ type TransactionProvider interface {
 }
 
 type Adapters struct {
-	Accounts AccountRepository
-	Sessions SessionRepository
-	//Registrations RegistrationRepository
-	//Relays        RelayRepository
-	//PublicKeys    PublicKeyRepository
-	//Events        EventRepository
-	//Tags          TagRepository
-
-	//Publisher Publisher
+	Accounts   AccountRepository
+	Sessions   SessionRepository
+	PublicKeys PublicKeyRepository
 }
 
 var ErrAccountDoesNotExist = errors.New("account doesn't exist")
@@ -47,6 +41,7 @@ type SessionRepository interface {
 
 	Save(session *sessions.Session) error
 }
+
 type RegistrationRepository interface {
 	Save(registration domain.Registration) error
 }
@@ -57,7 +52,7 @@ type RelayRepository interface {
 }
 
 type PublicKeyRepository interface {
-	GetAPNSTokens(ctx context.Context, publicKey domain.PublicKey, savedAfter time.Time) ([]domain.APNSToken, error)
+	Save(linkedPublicKey *domain.LinkedPublicKey) error
 }
 
 type EventRepository interface {
@@ -88,6 +83,7 @@ type Application struct {
 
 	GetSessionAccount *GetSessionAccountHandler
 	LoginOrRegister   *LoginOrRegisterHandler
+	LinkPublicKey     *LinkPublicKeyHandler
 }
 
 type EventOrError struct {

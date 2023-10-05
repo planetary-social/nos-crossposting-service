@@ -52,6 +52,9 @@ var sqliteTxAdaptersSet = wire.NewSet(
 
 	sqlite.NewSessionRepository,
 	wire.Bind(new(app.SessionRepository), new(*sqlite.SessionRepository)),
+
+	sqlite.NewPublicKeyRepository,
+	wire.Bind(new(app.PublicKeyRepository), new(*sqlite.PublicKeyRepository)),
 )
 
 var adaptersSet = wire.NewSet(

@@ -53,6 +53,5 @@ func TestSessionRepository_ItIsPossibleToRetrieveSavedData(t *testing.T) {
 
 		return nil
 	})
-
 	require.NoError(t, err)
 }

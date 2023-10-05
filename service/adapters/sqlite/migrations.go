@@ -40,5 +40,18 @@ func (m *Migrations) Execute(ctx context.Context) error {
 		return errors.Wrap(err, "error creating the sessions table")
 	}
 
+	_, err = m.db.Exec(`
+		CREATE TABLE IF NOT EXISTS public_keys (
+			account_id TEXT,
+			public_key TEXT,
+			created_at INTEGER,
+			PRIMARY KEY(account_id, public_key),
+			FOREIGN KEY(account_id) REFERENCES accounts(account_id)
+		);`,
+	)
+	if err != nil {
+		return errors.Wrap(err, "error creating the public keys table")
+	}
+
 	return nil
 }

@@ -24,4 +24,5 @@ var applicationSet = wire.NewSet(
 
 	app.NewGetSessionAccountHandler,
 	app.NewLoginOrRegisterHandler,
+	app.NewLinkPublicKeyHandler,
 )

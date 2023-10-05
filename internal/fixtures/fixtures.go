@@ -40,6 +40,20 @@ func SomeKeyPair() (publicKey domain.PublicKey, secretKeyHex string) {
 	return v, hex
 }
 
+func SomePublicKey() domain.PublicKey {
+	hex := somePrivateKeyHex()
+
+	p, err := nostr.GetPublicKey(hex)
+	if err != nil {
+		panic(err)
+	}
+	v, err := domain.NewPublicKeyFromHex(p)
+	if err != nil {
+		panic(err)
+	}
+	return v
+}
+
 func SomeRelayAddress() domain.RelayAddress {
 	protocol := internal.RandomElement([]string{"ws", "wss"})
 	address := fmt.Sprintf("%s://%s", protocol, SomeString())
