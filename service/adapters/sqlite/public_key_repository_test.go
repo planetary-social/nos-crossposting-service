@@ -51,7 +51,7 @@ func TestPublicKeyRepository_ItIsPossibleToRetrieveSavedData(t *testing.T) {
 		require.Len(t, results, 1)
 		require.Equal(t, linkedPublicKey.AccountID(), results[0].AccountID())
 		require.Equal(t, linkedPublicKey.PublicKey(), results[0].PublicKey())
-		require.Equal(t, linkedPublicKey.CreatedAt().Round(time.Second), results[0].CreatedAt().Round(time.Second))
+		require.Equal(t, linkedPublicKey.CreatedAt().Truncate(time.Second), results[0].CreatedAt().Truncate(time.Second))
 
 		return nil
 	})

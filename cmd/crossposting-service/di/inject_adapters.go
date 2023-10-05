@@ -11,7 +11,6 @@ import (
 	"github.com/planetary-social/nos-crossposting-service/service/adapters/sqlite"
 	"github.com/planetary-social/nos-crossposting-service/service/app"
 	"github.com/planetary-social/nos-crossposting-service/service/config"
-	"github.com/planetary-social/nos-crossposting-service/service/ports/firestorepubsub"
 )
 
 var sqliteAdaptersSet = wire.NewSet(
@@ -24,9 +23,6 @@ var sqliteAdaptersSet = wire.NewSet(
 
 	sqlite.NewMigrations,
 
-	//firestore.NewWatermillSubscriber,
-	//wire.Bind(new(firestorepubsub.FirestoreSubscriber), new(*watermillfirestore.Subscriber)),
-
 	wire.Struct(new(buildTransactionSqliteAdaptersDependencies), "*"),
 )
 
@@ -38,9 +34,6 @@ var sqliteTestAdaptersSet = wire.NewSet(
 	newTestAdaptersFactoryFn,
 
 	sqlite.NewMigrations,
-
-	//firestore.NewWatermillSubscriber,
-	//wire.Bind(new(firestorepubsub.FirestoreSubscriber), new(*watermillfirestore.Subscriber)),
 
 	wire.Struct(new(buildTransactionSqliteAdaptersDependencies), "*"),
 )
@@ -59,7 +52,6 @@ var sqliteTxAdaptersSet = wire.NewSet(
 var adaptersSet = wire.NewSet(
 	prometheus.NewPrometheus,
 	wire.Bind(new(app.Metrics), new(*prometheus.Prometheus)),
-	wire.Bind(new(firestorepubsub.Metrics), new(*prometheus.Prometheus)),
 
 	adapters.NewIDGenerator,
 	wire.Bind(new(app.SessionIDGenerator), new(*adapters.IDGenerator)),
@@ -75,7 +67,6 @@ var adaptersSet = wire.NewSet(
 var integrationAdaptersSet = wire.NewSet(
 	prometheus.NewPrometheus,
 	wire.Bind(new(app.Metrics), new(*prometheus.Prometheus)),
-	wire.Bind(new(firestorepubsub.Metrics), new(*prometheus.Prometheus)),
 
 	adapters.NewIDGenerator,
 	wire.Bind(new(app.SessionIDGenerator), new(*adapters.IDGenerator)),

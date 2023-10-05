@@ -2,7 +2,6 @@ package app
 
 import (
 	"context"
-	"time"
 
 	"github.com/boreq/errors"
 	"github.com/planetary-social/nos-crossposting-service/service/domain"
@@ -25,12 +24,6 @@ type TransactionProvider interface {
 	Transact(context.Context, func(context.Context, Adapters) error) error
 }
 
-type Adapters struct {
-	Accounts   AccountRepository
-	Sessions   SessionRepository
-	PublicKeys PublicKeyRepository
-}
-
 type AccountRepository interface {
 	// Returns ErrAccountDoesNotExist.
 	GetByTwitterID(twitterID accounts.TwitterID) (*accounts.Account, error)
@@ -48,65 +41,21 @@ type SessionRepository interface {
 	Save(session *sessions.Session) error
 }
 
-type RegistrationRepository interface {
-	Save(registration domain.Registration) error
-}
-
-type RelayRepository interface {
-	GetRelays(ctx context.Context, updatedAfter time.Time) ([]domain.RelayAddress, error)
-	GetPublicKeys(ctx context.Context, address domain.RelayAddress, updatedAfter time.Time) ([]domain.PublicKey, error)
-}
-
 type PublicKeyRepository interface {
 	Save(linkedPublicKey *domain.LinkedPublicKey) error
 	List() ([]*domain.LinkedPublicKey, error)
 }
 
-type EventRepository interface {
-	Save(event domain.Event) error
-	Get(ctx context.Context, id domain.EventId) (domain.Event, error)
-	Exists(ctx context.Context, id domain.EventId) (bool, error)
-	GetEvents(ctx context.Context, filters domain.Filters) <-chan EventOrError
+type Adapters struct {
+	Accounts   AccountRepository
+	Sessions   SessionRepository
+	PublicKeys PublicKeyRepository
 }
-
-type TagRepository interface {
-	Save(event domain.Event, tags []domain.EventTag) error
-}
-
-//type Publisher interface {
-//	PublishEventSaved(ctx context.Context, id domain.EventId) error
-//}
 
 type Application struct {
-	GetRelays     *GetRelaysHandler
-	GetPublicKeys *GetPublicKeysHandler
-	GetTokens     *GetTokensHandler
-	GetEvents     *GetEventsHandler
-
 	GetSessionAccount *GetSessionAccountHandler
 	LoginOrRegister   *LoginOrRegisterHandler
 	LinkPublicKey     *LinkPublicKeyHandler
-}
-
-type EventOrError struct {
-	event domain.Event
-	err   error
-}
-
-func NewEventOrErrorWithEvent(event domain.Event) EventOrError {
-	return EventOrError{event: event}
-}
-
-func NewEventOrErrorWithError(err error) EventOrError {
-	return EventOrError{err: err}
-}
-
-func (e *EventOrError) Event() domain.Event {
-	return e.event
-}
-
-func (e *EventOrError) Err() error {
-	return e.err
 }
 
 type ReceivedEvent struct {

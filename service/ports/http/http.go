@@ -95,8 +95,9 @@ func (s *Server) serveIndex(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) renderError(w http.ResponseWriter, err error) {
+	// todo
 	w.WriteHeader(http.StatusInternalServerError)
-	w.Write([]byte("error"))
+	_, _ = w.Write([]byte("error"))
 }
 
 func (s *Server) issueSession() http.Handler {

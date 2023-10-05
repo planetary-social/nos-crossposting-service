@@ -11,5 +11,4 @@ var portsSet = wire.NewSet(
 	http.NewMetricsServer,
 
 	memorypubsub.NewReceivedEventSubscriber,
-	//firestorepubsub.NewEventSavedSubscriber,
 )

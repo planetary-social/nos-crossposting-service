@@ -17,8 +17,7 @@ type Service struct {
 	metricsServer           http.MetricsServer
 	downloader              *app.Downloader
 	receivedEventSubscriber *memorypubsub.ReceivedEventSubscriber
-	//eventSavedSubscriber      *firestorepubsub.EventSavedSubscriber
-	migrations *sqlite.Migrations
+	migrations              *sqlite.Migrations
 }
 
 func NewService(
@@ -27,7 +26,6 @@ func NewService(
 	metricsServer http.MetricsServer,
 	downloader *app.Downloader,
 	receivedEventSubscriber *memorypubsub.ReceivedEventSubscriber,
-	//eventSavedSubscriber *firestorepubsub.EventSavedSubscriber,
 	migrations *sqlite.Migrations,
 ) Service {
 	return Service{
@@ -36,8 +34,7 @@ func NewService(
 		metricsServer:           metricsServer,
 		downloader:              downloader,
 		receivedEventSubscriber: receivedEventSubscriber,
-		//eventSavedSubscriber:      eventSavedSubscriber,
-		migrations: migrations,
+		migrations:              migrations,
 	}
 }
 
@@ -75,12 +72,6 @@ func (s Service) Run(ctx context.Context) error {
 	go func() {
 		errCh <- errors.Wrap(s.receivedEventSubscriber.Run(ctx), "received event subscriber error")
 	}()
-
-	//runners++
-	//go func() {
-	//	errCh <- errors.Wrap(s.eventSavedSubscriber.Run(ctx), "event saved subscriber error")
-	//}()
-	//
 
 	var err error
 	for i := 0; i < runners; i++ {

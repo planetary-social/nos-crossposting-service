@@ -43,26 +43,18 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 		cleanup()
 		return Service{}, nil, err
 	}
-	getRelaysHandler := app.NewGetRelaysHandler(genericTransactionProvider, prometheusPrometheus)
-	getPublicKeysHandler := app.NewGetPublicKeysHandler(genericTransactionProvider, prometheusPrometheus)
-	getTokensHandler := app.NewGetTokensHandler(genericTransactionProvider, prometheusPrometheus)
-	receivedEventPubSub := pubsub.NewReceivedEventPubSub()
-	getEventsHandler := app.NewGetEventsHandler(genericTransactionProvider, receivedEventPubSub, prometheusPrometheus)
 	getSessionAccountHandler := app.NewGetSessionAccountHandler(genericTransactionProvider, logger, prometheusPrometheus)
 	idGenerator := adapters.NewIDGenerator()
 	loginOrRegisterHandler := app.NewLoginOrRegisterHandler(genericTransactionProvider, idGenerator, idGenerator, logger, prometheusPrometheus)
 	linkPublicKeyHandler := app.NewLinkPublicKeyHandler(genericTransactionProvider, logger, prometheusPrometheus)
 	application := app.Application{
-		GetRelays:         getRelaysHandler,
-		GetPublicKeys:     getPublicKeysHandler,
-		GetTokens:         getTokensHandler,
-		GetEvents:         getEventsHandler,
 		GetSessionAccount: getSessionAccountHandler,
 		LoginOrRegister:   loginOrRegisterHandler,
 		LinkPublicKey:     linkPublicKeyHandler,
 	}
 	server := http.NewServer(configConfig, application, logger)
 	metricsServer := http.NewMetricsServer(prometheusPrometheus, configConfig, logger)
+	receivedEventPubSub := pubsub.NewReceivedEventPubSub()
 	purplePages := adapters.NewPurplePages()
 	relayEventDownloader := adapters.NewRelayEventDownloader(contextContext, logger)
 	downloader := app.NewDownloader(genericTransactionProvider, receivedEventPubSub, logger, prometheusPrometheus, purplePages, relayEventDownloader)
@@ -92,26 +84,18 @@ func BuildIntegrationService(contextContext context.Context, configConfig config
 		cleanup()
 		return IntegrationService{}, nil, err
 	}
-	getRelaysHandler := app.NewGetRelaysHandler(genericTransactionProvider, prometheusPrometheus)
-	getPublicKeysHandler := app.NewGetPublicKeysHandler(genericTransactionProvider, prometheusPrometheus)
-	getTokensHandler := app.NewGetTokensHandler(genericTransactionProvider, prometheusPrometheus)
-	receivedEventPubSub := pubsub.NewReceivedEventPubSub()
-	getEventsHandler := app.NewGetEventsHandler(genericTransactionProvider, receivedEventPubSub, prometheusPrometheus)
 	getSessionAccountHandler := app.NewGetSessionAccountHandler(genericTransactionProvider, logger, prometheusPrometheus)
 	idGenerator := adapters.NewIDGenerator()
 	loginOrRegisterHandler := app.NewLoginOrRegisterHandler(genericTransactionProvider, idGenerator, idGenerator, logger, prometheusPrometheus)
 	linkPublicKeyHandler := app.NewLinkPublicKeyHandler(genericTransactionProvider, logger, prometheusPrometheus)
 	application := app.Application{
-		GetRelays:         getRelaysHandler,
-		GetPublicKeys:     getPublicKeysHandler,
-		GetTokens:         getTokensHandler,
-		GetEvents:         getEventsHandler,
 		GetSessionAccount: getSessionAccountHandler,
 		LoginOrRegister:   loginOrRegisterHandler,
 		LinkPublicKey:     linkPublicKeyHandler,
 	}
 	server := http.NewServer(configConfig, application, logger)
 	metricsServer := http.NewMetricsServer(prometheusPrometheus, configConfig, logger)
+	receivedEventPubSub := pubsub.NewReceivedEventPubSub()
 	purplePages := adapters.NewPurplePages()
 	relayEventDownloader := adapters.NewRelayEventDownloader(contextContext, logger)
 	downloader := app.NewDownloader(genericTransactionProvider, receivedEventPubSub, logger, prometheusPrometheus, purplePages, relayEventDownloader)
