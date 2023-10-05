@@ -1,11 +1,11 @@
-# Nos Notification Service
+# Nos Crossposting Service
 
 ## Building and running
 
-Buid the program like so:
+Build the program like so:
 
-    $ go build -o notification-service ./cmd/notification-service
-    $ ./notification-service
+    $ go build -o crossposting-service ./cmd/crossposting-service
+    $ ./crossposting-service
 
 The program takes no arguments. There is a Dockerfile available.
 
@@ -122,10 +122,10 @@ FIRESTORE_EMULATOR_HOST=localhost:8200 \
 NOTIFICATIONS_FIRESTORE_PROJECT_ID=test-project-id \
 NOTIFICATIONS_APNS_TOPIC=com.verse.Nos \
 NOTIFICATIONS_ENVIRONMENT=DEVELOPMENT \
-go run ./cmd/notification-service
+go run ./cmd/crossposting-service
 ```
 
-##### Using `nos-notification-service-dev` project
+##### Using `nos-crossposting-service-dev` project
 
 1. [Download credentials for the project][get-firebase-credentials]. **Those are your private credentials don't use them for production**.
 2. Run the following command changing `NOTIFICATIONS_APNS_CERTIFICATE_PATH`, `NOTIFICATIONS_APNS_CERTIFICATE_PASSWORD` and `NOTIFICATIONS_FIRESTORE_CREDENTIALS_JSON_PATH`:
@@ -134,10 +134,10 @@ go run ./cmd/notification-service
 NOTIFICATIONS_APNS_CERTIFICATE_PATH="/path/to/your/apns/cert.p12" \
 NOTIFICATIONS_APNS_CERTIFICATE_PASSWORD="your cert password if you set one" \
 NOTIFICATIONS_FIRESTORE_CREDENTIALS_JSON_PATH="/path/to/your/credentials/file.json" \
-NOTIFICATIONS_FIRESTORE_PROJECT_ID="nos-notification-service-dev" \
+NOTIFICATIONS_FIRESTORE_PROJECT_ID="nos-crossposting-service-dev" \
 NOTIFICATIONS_APNS_TOPIC=com.verse.Nos \
 NOTIFICATIONS_ENVIRONMENT=DEVELOPMENT \
-go run ./cmd/notification-service
+go run ./cmd/crossposting-service
 ```
 
 ### Tips and tricks
