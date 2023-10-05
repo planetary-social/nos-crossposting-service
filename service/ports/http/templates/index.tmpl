@@ -3,14 +3,24 @@
 <body>
 
 <h1>
-    template index
+    Nos crossposting service
 </h1>
 
 {{ if .account }}
-    logged in as {{ .account.AccountID }}
+    You are logged in as {{ .account.AccountID }}.
+
+
+    <h2>Link public key</h2>
+    <form action="/link-public-key" method="post">
+        <input type="text" name="npub" placeholder="npub...">
+        <input type="submit" value="Link public key" />
+    </form>
+
 {{ else }}
-    <a href="/login">login</a>
-    not logged in
+    <div>
+        You aren't logged in.
+    </div>
+    <a href="/login">Login</a>
 {{ end  }}
 </body>
 </html>

@@ -15,6 +15,7 @@ import (
 	"github.com/planetary-social/nos-crossposting-service/internal/logging"
 	"github.com/planetary-social/nos-crossposting-service/service/app"
 	"github.com/planetary-social/nos-crossposting-service/service/config"
+	"github.com/planetary-social/nos-crossposting-service/service/domain"
 	"github.com/planetary-social/nos-crossposting-service/service/domain/accounts"
 )
 
@@ -75,6 +76,7 @@ func (s *Server) createMux() *http.ServeMux {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", s.serveIndex)
+	mux.HandleFunc("/link-public-key", s.serveLinkPublicKey)
 	mux.Handle("/login", twitter.LoginHandler(config, nil))
 	mux.Handle("/callback", twitter.CallbackHandler(config, s.issueSession(), nil))
 	return mux
@@ -92,6 +94,37 @@ func (s *Server) serveIndex(w http.ResponseWriter, r *http.Request) {
 	if err := t.ExecuteTemplate(w, "index.tmpl", data); err != nil {
 		s.logger.Error().WithError(err).Message("error rendering index")
 	}
+}
+
+func (s *Server) serveLinkPublicKey(w http.ResponseWriter, r *http.Request) {
+	account, err := s.getAccountFromRequest(r)
+	if err != nil {
+		s.renderError(w, err)
+		return
+	}
+
+	if account == nil {
+		s.renderError(w, errors.New("you are not logged in"))
+		return
+	}
+
+	npub := r.FormValue("npub")
+
+	publicKey, err := domain.NewPublicKeyFromNpub(npub)
+	if err != nil {
+		s.renderError(w, errors.Wrap(err, "invalid npub"))
+		return
+	}
+
+	cmd := app.NewLinkPublicKey(account.AccountID(), publicKey)
+
+	err = s.app.LinkPublicKey.Handle(r.Context(), cmd)
+	if err != nil {
+		s.renderError(w, errors.Wrap(err, "handler error"))
+		return
+	}
+
+	http.Redirect(w, r, "/", http.StatusFound)
 }
 
 func (s *Server) renderError(w http.ResponseWriter, err error) {
