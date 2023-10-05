@@ -2,9 +2,11 @@ package sqlite
 
 import (
 	"database/sql"
+	"time"
 
 	"github.com/boreq/errors"
 	"github.com/planetary-social/nos-crossposting-service/service/domain"
+	"github.com/planetary-social/nos-crossposting-service/service/domain/accounts"
 )
 
 type PublicKeyRepository struct {
@@ -30,4 +32,53 @@ func (m *PublicKeyRepository) Save(linkedPublicKey *domain.LinkedPublicKey) erro
 	}
 
 	return nil
+}
+
+func (m *PublicKeyRepository) List() ([]*domain.LinkedPublicKey, error) {
+	rows, err := m.tx.Query(`
+SELECT account_id, public_key, created_at
+FROM public_keys
+`,
+	)
+	if err != nil {
+		return nil, errors.Wrap(err, "query error")
+	}
+
+	return m.readPublicKeys(rows)
+}
+
+func (m *PublicKeyRepository) readPublicKeys(rows *sql.Rows) ([]*domain.LinkedPublicKey, error) {
+	var results []*domain.LinkedPublicKey
+	for rows.Next() {
+		result, err := m.readPublicKey(rows)
+		if err != nil {
+			return nil, errors.Wrap(err, "error reading public keys")
+		}
+		results = append(results, result)
+	}
+	return results, nil
+}
+
+func (m *PublicKeyRepository) readPublicKey(row *sql.Rows) (*domain.LinkedPublicKey, error) {
+	var accountIDTmp string
+	var publicKeyTmp string
+	var createdAtTmp int64
+
+	if err := row.Scan(&accountIDTmp, &publicKeyTmp, &createdAtTmp); err != nil {
+		return nil, errors.Wrap(err, "error reading the row")
+	}
+
+	accountID, err := accounts.NewAccountID(accountIDTmp)
+	if err != nil {
+		return nil, errors.Wrap(err, "error creating the account id")
+	}
+
+	publicKey, err := domain.NewPublicKeyFromHex(publicKeyTmp)
+	if err != nil {
+		return nil, errors.Wrap(err, "error creating the public key")
+	}
+
+	createdAt := time.Unix(createdAtTmp, 0)
+
+	return domain.NewLinkedPublicKey(accountID, publicKey, createdAt)
 }

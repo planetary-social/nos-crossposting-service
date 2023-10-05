@@ -20,7 +20,6 @@ var applicationSet = wire.NewSet(
 	app.NewGetPublicKeysHandler,
 	app.NewGetTokensHandler,
 	app.NewGetEventsHandler,
-	app.NewGetNotificationsHandler,
 
 	app.NewGetSessionAccountHandler,
 	app.NewLoginOrRegisterHandler,

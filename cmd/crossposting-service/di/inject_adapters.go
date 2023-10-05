@@ -7,7 +7,6 @@ import (
 	"github.com/google/wire"
 	"github.com/planetary-social/nos-crossposting-service/internal/logging"
 	"github.com/planetary-social/nos-crossposting-service/service/adapters"
-	"github.com/planetary-social/nos-crossposting-service/service/adapters/memory"
 	"github.com/planetary-social/nos-crossposting-service/service/adapters/prometheus"
 	"github.com/planetary-social/nos-crossposting-service/service/adapters/sqlite"
 	"github.com/planetary-social/nos-crossposting-service/service/app"
@@ -62,12 +61,15 @@ var adaptersSet = wire.NewSet(
 	wire.Bind(new(app.Metrics), new(*prometheus.Prometheus)),
 	wire.Bind(new(firestorepubsub.Metrics), new(*prometheus.Prometheus)),
 
-	adapters.NewMemoryEventWasAlreadySavedCache,
-	wire.Bind(new(app.EventWasAlreadySavedCache), new(*adapters.MemoryEventWasAlreadySavedCache)),
-
 	adapters.NewIDGenerator,
 	wire.Bind(new(app.SessionIDGenerator), new(*adapters.IDGenerator)),
 	wire.Bind(new(app.AccountIDGenerator), new(*adapters.IDGenerator)),
+
+	adapters.NewPurplePages,
+	wire.Bind(new(app.RelaySource), new(*adapters.PurplePages)),
+
+	adapters.NewRelayEventDownloader,
+	wire.Bind(new(app.RelayEventDownloader), new(*adapters.RelayEventDownloader)),
 )
 
 var integrationAdaptersSet = wire.NewSet(
@@ -75,18 +77,15 @@ var integrationAdaptersSet = wire.NewSet(
 	wire.Bind(new(app.Metrics), new(*prometheus.Prometheus)),
 	wire.Bind(new(firestorepubsub.Metrics), new(*prometheus.Prometheus)),
 
-	adapters.NewMemoryEventWasAlreadySavedCache,
-	wire.Bind(new(app.EventWasAlreadySavedCache), new(*adapters.MemoryEventWasAlreadySavedCache)),
-
 	adapters.NewIDGenerator,
 	wire.Bind(new(app.SessionIDGenerator), new(*adapters.IDGenerator)),
 	wire.Bind(new(app.AccountIDGenerator), new(*adapters.IDGenerator)),
 
-	memory.NewMemoryAccountRepository,
-	wire.Bind(new(app.AccountRepository), new(*memory.MemoryAccountRepository)),
+	adapters.NewPurplePages,
+	wire.Bind(new(app.RelaySource), new(*adapters.PurplePages)),
 
-	memory.NewMemorySessionRepository,
-	wire.Bind(new(app.SessionRepository), new(*memory.MemorySessionRepository)),
+	adapters.NewRelayEventDownloader,
+	wire.Bind(new(app.RelayEventDownloader), new(*adapters.RelayEventDownloader)),
 )
 
 func newAdaptersFactoryFn(deps buildTransactionSqliteAdaptersDependencies) sqlite.AdaptersFactoryFn {

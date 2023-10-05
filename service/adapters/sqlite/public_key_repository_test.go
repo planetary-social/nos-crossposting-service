@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestPublicKeyRepository_ItIsPossibleToSaveData(t *testing.T) {
+func TestPublicKeyRepository_ItIsPossibleToRetrieveSavedData(t *testing.T) {
 	ctx := fixtures.TestContext(t)
 	adapters := NewTestAdapters(ctx, t)
 
@@ -39,6 +39,19 @@ func TestPublicKeyRepository_ItIsPossibleToSaveData(t *testing.T) {
 	err = adapters.TransactionProvider.Transact(ctx, func(ctx context.Context, adapters sqlite.TestAdapters) error {
 		err = adapters.PublicKeyRepository.Save(linkedPublicKey)
 		require.NoError(t, err)
+
+		return nil
+	})
+	require.NoError(t, err)
+
+	err = adapters.TransactionProvider.Transact(ctx, func(ctx context.Context, adapters sqlite.TestAdapters) error {
+		results, err := adapters.PublicKeyRepository.List()
+		require.NoError(t, err)
+
+		require.Len(t, results, 1)
+		require.Equal(t, linkedPublicKey.AccountID(), results[0].AccountID())
+		require.Equal(t, linkedPublicKey.PublicKey(), results[0].PublicKey())
+		require.Equal(t, linkedPublicKey.CreatedAt().Round(time.Second), results[0].CreatedAt().Round(time.Second))
 
 		return nil
 	})

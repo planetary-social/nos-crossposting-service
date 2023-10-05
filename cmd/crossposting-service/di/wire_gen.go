@@ -20,14 +20,13 @@ import (
 	"github.com/planetary-social/nos-crossposting-service/service/adapters/sqlite"
 	"github.com/planetary-social/nos-crossposting-service/service/app"
 	"github.com/planetary-social/nos-crossposting-service/service/config"
-	"github.com/planetary-social/nos-crossposting-service/service/domain/notifications"
 	"github.com/planetary-social/nos-crossposting-service/service/ports/http"
+	"github.com/planetary-social/nos-crossposting-service/service/ports/memorypubsub"
 )
 
 // Injectors from wire.go:
 
 func BuildService(contextContext context.Context, configConfig config.Config) (Service, func(), error) {
-	memoryEventWasAlreadySavedCache := adapters.NewMemoryEventWasAlreadySavedCache()
 	logger, err := newLogger(configConfig)
 	if err != nil {
 		return Service{}, nil, err
@@ -44,39 +43,39 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 		cleanup()
 		return Service{}, nil, err
 	}
-	saveReceivedEventHandler := app.NewSaveReceivedEventHandler(memoryEventWasAlreadySavedCache, genericTransactionProvider, logger, prometheusPrometheus)
 	getRelaysHandler := app.NewGetRelaysHandler(genericTransactionProvider, prometheusPrometheus)
 	getPublicKeysHandler := app.NewGetPublicKeysHandler(genericTransactionProvider, prometheusPrometheus)
 	getTokensHandler := app.NewGetTokensHandler(genericTransactionProvider, prometheusPrometheus)
 	receivedEventPubSub := pubsub.NewReceivedEventPubSub()
 	getEventsHandler := app.NewGetEventsHandler(genericTransactionProvider, receivedEventPubSub, prometheusPrometheus)
-	getNotificationsHandler := app.NewGetNotificationsHandler(genericTransactionProvider, prometheusPrometheus)
 	getSessionAccountHandler := app.NewGetSessionAccountHandler(genericTransactionProvider, logger, prometheusPrometheus)
 	idGenerator := adapters.NewIDGenerator()
 	loginOrRegisterHandler := app.NewLoginOrRegisterHandler(genericTransactionProvider, idGenerator, idGenerator, logger, prometheusPrometheus)
 	linkPublicKeyHandler := app.NewLinkPublicKeyHandler(genericTransactionProvider, logger, prometheusPrometheus)
 	application := app.Application{
-		SaveReceivedEvent: saveReceivedEventHandler,
 		GetRelays:         getRelaysHandler,
 		GetPublicKeys:     getPublicKeysHandler,
 		GetTokens:         getTokensHandler,
 		GetEvents:         getEventsHandler,
-		GetNotifications:  getNotificationsHandler,
 		GetSessionAccount: getSessionAccountHandler,
 		LoginOrRegister:   loginOrRegisterHandler,
 		LinkPublicKey:     linkPublicKeyHandler,
 	}
 	server := http.NewServer(configConfig, application, logger)
 	metricsServer := http.NewMetricsServer(prometheusPrometheus, configConfig, logger)
+	purplePages := adapters.NewPurplePages()
+	relayEventDownloader := adapters.NewRelayEventDownloader(contextContext, logger)
+	downloader := app.NewDownloader(genericTransactionProvider, receivedEventPubSub, logger, prometheusPrometheus, purplePages, relayEventDownloader)
+	saveReceivedEventHandler := app.NewSaveReceivedEventHandler(genericTransactionProvider, logger, prometheusPrometheus)
+	receivedEventSubscriber := memorypubsub.NewReceivedEventSubscriber(receivedEventPubSub, saveReceivedEventHandler, logger)
 	migrations := sqlite.NewMigrations(db)
-	service := NewService(application, server, metricsServer, memoryEventWasAlreadySavedCache, migrations)
+	service := NewService(application, server, metricsServer, downloader, receivedEventSubscriber, migrations)
 	return service, func() {
 		cleanup()
 	}, nil
 }
 
 func BuildIntegrationService(contextContext context.Context, configConfig config.Config) (IntegrationService, func(), error) {
-	memoryEventWasAlreadySavedCache := adapters.NewMemoryEventWasAlreadySavedCache()
 	logger, err := newLogger(configConfig)
 	if err != nil {
 		return IntegrationService{}, nil, err
@@ -93,32 +92,33 @@ func BuildIntegrationService(contextContext context.Context, configConfig config
 		cleanup()
 		return IntegrationService{}, nil, err
 	}
-	saveReceivedEventHandler := app.NewSaveReceivedEventHandler(memoryEventWasAlreadySavedCache, genericTransactionProvider, logger, prometheusPrometheus)
 	getRelaysHandler := app.NewGetRelaysHandler(genericTransactionProvider, prometheusPrometheus)
 	getPublicKeysHandler := app.NewGetPublicKeysHandler(genericTransactionProvider, prometheusPrometheus)
 	getTokensHandler := app.NewGetTokensHandler(genericTransactionProvider, prometheusPrometheus)
 	receivedEventPubSub := pubsub.NewReceivedEventPubSub()
 	getEventsHandler := app.NewGetEventsHandler(genericTransactionProvider, receivedEventPubSub, prometheusPrometheus)
-	getNotificationsHandler := app.NewGetNotificationsHandler(genericTransactionProvider, prometheusPrometheus)
 	getSessionAccountHandler := app.NewGetSessionAccountHandler(genericTransactionProvider, logger, prometheusPrometheus)
 	idGenerator := adapters.NewIDGenerator()
 	loginOrRegisterHandler := app.NewLoginOrRegisterHandler(genericTransactionProvider, idGenerator, idGenerator, logger, prometheusPrometheus)
 	linkPublicKeyHandler := app.NewLinkPublicKeyHandler(genericTransactionProvider, logger, prometheusPrometheus)
 	application := app.Application{
-		SaveReceivedEvent: saveReceivedEventHandler,
 		GetRelays:         getRelaysHandler,
 		GetPublicKeys:     getPublicKeysHandler,
 		GetTokens:         getTokensHandler,
 		GetEvents:         getEventsHandler,
-		GetNotifications:  getNotificationsHandler,
 		GetSessionAccount: getSessionAccountHandler,
 		LoginOrRegister:   loginOrRegisterHandler,
 		LinkPublicKey:     linkPublicKeyHandler,
 	}
 	server := http.NewServer(configConfig, application, logger)
 	metricsServer := http.NewMetricsServer(prometheusPrometheus, configConfig, logger)
+	purplePages := adapters.NewPurplePages()
+	relayEventDownloader := adapters.NewRelayEventDownloader(contextContext, logger)
+	downloader := app.NewDownloader(genericTransactionProvider, receivedEventPubSub, logger, prometheusPrometheus, purplePages, relayEventDownloader)
+	saveReceivedEventHandler := app.NewSaveReceivedEventHandler(genericTransactionProvider, logger, prometheusPrometheus)
+	receivedEventSubscriber := memorypubsub.NewReceivedEventSubscriber(receivedEventPubSub, saveReceivedEventHandler, logger)
 	migrations := sqlite.NewMigrations(db)
-	service := NewService(application, server, metricsServer, memoryEventWasAlreadySavedCache, migrations)
+	service := NewService(application, server, metricsServer, downloader, receivedEventSubscriber, migrations)
 	integrationService := IntegrationService{
 		Service: service,
 	}
@@ -209,5 +209,3 @@ type buildTransactionSqliteAdaptersDependencies struct {
 }
 
 var downloaderSet = wire.NewSet(app.NewDownloader)
-
-var generatorSet = wire.NewSet(notifications.NewGenerator)

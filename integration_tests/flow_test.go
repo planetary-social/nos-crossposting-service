@@ -140,7 +140,7 @@ func testIngestEventAndSendOutNotifications(t *testing.T, ctx context.Context, e
 	event, err := domain.NewEvent(libevent)
 	require.NoError(t, err)
 
-	cmd := app.NewSaveReceivedEvent(fixtures.SomeRelayAddress(), event)
+	cmd := app.NewProcessReceivedEvent(fixtures.SomeRelayAddress(), event)
 	err = env.service.Service.App().Commands.SaveReceivedEvent.Handle(ctx, cmd)
 	require.NoError(t, err)
 

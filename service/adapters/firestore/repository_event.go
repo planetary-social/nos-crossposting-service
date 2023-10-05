@@ -9,7 +9,6 @@ import (
 	"github.com/boreq/errors"
 	"github.com/planetary-social/nos-crossposting-service/service/app"
 	"github.com/planetary-social/nos-crossposting-service/service/domain"
-	"github.com/planetary-social/nos-crossposting-service/service/domain/notifications"
 	"google.golang.org/api/iterator"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -84,26 +83,6 @@ func (e *EventRepository) Get(ctx context.Context, id domain.EventId) (domain.Ev
 	return event, nil
 }
 
-func (e *EventRepository) SaveNotificationForEvent(notification notifications.Notification) error {
-	notificationDocPath := e.client.
-		Collection(collectionEvents).
-		Doc(notification.Event().Id().Hex()).
-		Collection(collectionEventsNotifications).
-		Doc(notification.UUID().String())
-
-	notificationDocData := map[string]any{
-		eventNotificationUUID:    ensureType[string](notification.UUID().String()),
-		eventNotificationToken:   ensureType[string](notification.APNSToken().Hex()),
-		eventNotificationPayload: ensureType[[]byte](notification.Payload()),
-	}
-
-	if err := e.tx.Set(notificationDocPath, notificationDocData, firestore.MergeAll); err != nil {
-		return errors.Wrap(err, "error updating the notification doc")
-	}
-
-	return nil
-}
-
 func (e *EventRepository) saveUnderEvents(event domain.Event) error {
 	eventDocPath := e.client.Collection(collectionEvents).Doc(event.Id().Hex())
 	eventDocData := map[string]any{
@@ -141,50 +120,6 @@ func (e *EventRepository) getEvents(ctx context.Context, filters domain.Filters,
 		case <-ctx.Done():
 		}
 	}
-}
-
-func (e *EventRepository) GetNotifications(ctx context.Context, id domain.EventId) ([]notifications.Notification, error) {
-	iter := e.client.Collection(collectionEvents).Doc(id.Hex()).Collection(collectionEventsNotifications).Documents(ctx)
-
-	event, err := e.Get(ctx, id)
-	if err != nil {
-		return nil, errors.Wrap(err, "error getting the event")
-	}
-
-	var result []notifications.Notification
-	for {
-		doc, err := iter.Next()
-		if err != nil {
-			if errors.Is(err, iterator.Done) {
-				break
-			}
-		}
-
-		fmt.Println("create time", doc.CreateTime)
-
-		data := make(map[string]any)
-		if err := doc.DataTo(&data); err != nil {
-			return nil, errors.Wrap(err, "error getting doc data")
-		}
-
-		uuid, err := notifications.NewNotificationUUIDFromString(data[eventNotificationUUID].(string))
-		if err != nil {
-			return nil, errors.Wrap(err, "error creating an uuid")
-		}
-
-		token, err := domain.NewAPNSTokenFromHex(data[eventNotificationToken].(string))
-		if err != nil {
-			return nil, errors.Wrap(err, "error creating a token")
-		}
-
-		notification, err := notifications.NewNotification(event, uuid, token, data[eventNotificationPayload].([]byte))
-		if err != nil {
-			return nil, errors.Wrap(err, "error creating a notification")
-		}
-
-		result = append(result, notification)
-	}
-	return result, nil
 }
 
 func (e *EventRepository) loadEventsForFilters(ctx context.Context, filters domain.Filters) ([]domain.Event, error) {

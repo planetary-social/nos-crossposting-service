@@ -14,7 +14,6 @@ import (
 	"github.com/planetary-social/nos-crossposting-service/service/adapters/sqlite"
 	"github.com/planetary-social/nos-crossposting-service/service/app"
 	"github.com/planetary-social/nos-crossposting-service/service/config"
-	"github.com/planetary-social/nos-crossposting-service/service/domain/notifications"
 )
 
 func BuildService(context.Context, config.Config) (Service, func(), error) {
@@ -24,8 +23,7 @@ func BuildService(context.Context, config.Config) (Service, func(), error) {
 		portsSet,
 		applicationSet,
 		sqliteAdaptersSet,
-		//downloaderSet,
-		//generatorSet,
+		downloaderSet,
 		pubsubSet,
 		loggingSet,
 		adaptersSet,
@@ -46,7 +44,7 @@ func BuildIntegrationService(context.Context, config.Config) (IntegrationService
 		portsSet,
 		applicationSet,
 		sqliteAdaptersSet,
-		//downloaderSet,
+		downloaderSet,
 		//generatorSet,
 		pubsubSet,
 		loggingSet,
@@ -104,8 +102,4 @@ func buildTestTransactionSqliteAdapters(*sql.DB, *sql.Tx, buildTransactionSqlite
 
 var downloaderSet = wire.NewSet(
 	app.NewDownloader,
-)
-
-var generatorSet = wire.NewSet(
-	notifications.NewGenerator,
 )

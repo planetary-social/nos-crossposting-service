@@ -6,12 +6,9 @@ import (
 
 	"github.com/planetary-social/nos-crossposting-service/internal/logging"
 	"github.com/planetary-social/nos-crossposting-service/service/domain"
-	"github.com/planetary-social/nos-crossposting-service/service/domain/notifications"
 )
 
 const (
-	tagBatchSize                       = 150
-	apnsTokenBatchSize                 = 500
 	onlySaveEventForEventsWithMoreTags = 500
 
 	sendNotificationsToTokensYoungerThan = 6 * 30 * 24 * time.Hour
@@ -27,20 +24,17 @@ func NewProcessSavedEvent(eventId domain.EventId) ProcessSavedEvent {
 
 type ProcessSavedEventHandler struct {
 	transactionProvider TransactionProvider
-	generator           *notifications.Generator
 	logger              logging.Logger
 	metrics             Metrics
 }
 
 func NewProcessSavedEventHandler(
 	transactionProvider TransactionProvider,
-	generator *notifications.Generator,
 	logger logging.Logger,
 	metrics Metrics,
 ) *ProcessSavedEventHandler {
 	return &ProcessSavedEventHandler{
 		transactionProvider: transactionProvider,
-		generator:           generator,
 		logger:              logger.New("processSavedEventHandler"),
 		metrics:             metrics,
 	}

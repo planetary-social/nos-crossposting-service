@@ -7,6 +7,7 @@ import (
 	"github.com/boreq/errors"
 	"github.com/planetary-social/nos-crossposting-service/internal/logging"
 	"github.com/planetary-social/nos-crossposting-service/service/app"
+	"github.com/planetary-social/nos-crossposting-service/service/domain"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 )
@@ -118,9 +119,9 @@ func (p *Prometheus) StartApplicationCall(handlerName string) app.ApplicationCal
 	return NewApplicationCall(p, handlerName, p.logger)
 }
 
-func (p *Prometheus) MeasureRelayDownloadersState(n int, state app.RelayDownloaderState) {
-	p.relayDownloaderStateGauge.With(prometheus.Labels{labelRelayDownloaderState: state.String()}).Set(float64(n))
-}
+//func (p *Prometheus) MeasureRelayDownloadersState(n int, state app.RelayConnectionState) {
+//	p.relayDownloaderStateGauge.With(prometheus.Labels{labelRelayDownloaderState: state.String()}).Set(float64(n))
+//}
 
 func (p *Prometheus) ReportSubscriptionQueueLength(topic string, n int) {
 	p.subscriptionQueueLengthGauge.With(prometheus.Labels{labelTopic: topic}).Set(float64(n))
@@ -128,6 +129,18 @@ func (p *Prometheus) ReportSubscriptionQueueLength(topic string, n int) {
 
 func (p *Prometheus) Registry() *prometheus.Registry {
 	return p.registry
+}
+
+func (p *Prometheus) ReportNumberOfPublicKeyDownloaders(n int) {
+	//TODO implement me
+}
+
+func (p *Prometheus) ReportNumberOfPublicKeyDownloaderRelays(publicKey domain.PublicKey, n int) {
+	//TODO implement me
+}
+
+func (p *Prometheus) ReportRelayConnectionState(relayAddress domain.RelayAddress, state app.RelayConnectionState) {
+	//TODO implement me
 }
 
 type ApplicationCall struct {

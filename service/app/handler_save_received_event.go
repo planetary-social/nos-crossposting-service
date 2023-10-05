@@ -8,45 +8,38 @@ import (
 	"github.com/planetary-social/nos-crossposting-service/service/domain"
 )
 
-type SaveReceivedEvent struct {
+type ProcessReceivedEvent struct {
 	relay domain.RelayAddress
 	event domain.Event
 }
 
-func NewSaveReceivedEvent(relay domain.RelayAddress, event domain.Event) SaveReceivedEvent {
-	return SaveReceivedEvent{relay: relay, event: event}
+func NewProcessReceivedEvent(relay domain.RelayAddress, event domain.Event) ProcessReceivedEvent {
+	return ProcessReceivedEvent{relay: relay, event: event}
 }
 
 type SaveReceivedEventHandler struct {
-	eventWasAlreadySavedCache EventWasAlreadySavedCache
-	transactionProvider       TransactionProvider
-	logger                    logging.Logger
-	metrics                   Metrics
+	transactionProvider TransactionProvider
+	logger              logging.Logger
+	metrics             Metrics
 }
 
 func NewSaveReceivedEventHandler(
-	eventWasAlreadySavedCache EventWasAlreadySavedCache,
 	transactionProvider TransactionProvider,
 	logger logging.Logger,
 	metrics Metrics,
 ) *SaveReceivedEventHandler {
 	return &SaveReceivedEventHandler{
-		eventWasAlreadySavedCache: eventWasAlreadySavedCache,
-		transactionProvider:       transactionProvider,
-		logger:                    logger.New("saveReceivedEventHandler"),
-		metrics:                   metrics,
+		transactionProvider: transactionProvider,
+		logger:              logger.New("processReceivedEventHandler"),
+		metrics:             metrics,
 	}
 }
 
-func (h *SaveReceivedEventHandler) Handle(ctx context.Context, cmd SaveReceivedEvent) (err error) {
-	defer h.metrics.StartApplicationCall("saveReceivedEvent").End(&err)
+func (h *SaveReceivedEventHandler) Handle(ctx context.Context, cmd ProcessReceivedEvent) (err error) {
+	defer h.metrics.StartApplicationCall("processReceivedEvent").End(&err)
 
 	if !domain.ShouldDownloadEventKind(cmd.event.Kind()) {
 		return fmt.Errorf("event '%s' shouldn't have been downloaded", cmd.event.String())
-	}
-
-	if h.eventWasAlreadySavedCache.EventWasAlreadySaved(cmd.event.Id()) {
-		return nil
 	}
 
 	h.logger.Debug().
@@ -55,7 +48,9 @@ func (h *SaveReceivedEventHandler) Handle(ctx context.Context, cmd SaveReceivedE
 		WithField("event.kind", cmd.event.Kind().Int()).
 		WithField("size", len(cmd.event.Raw())).
 		WithField("number_of_tags", len(cmd.event.Tags())).
-		Message("saving received event")
+		Message("processing received event")
+
+	// todo
 
 	//if err := h.transactionProvider.Transact(ctx, func(ctx context.Context, adapters Adapters) error {
 	//	exists, err := adapters.Events.Exists(ctx, cmd.event.Id())

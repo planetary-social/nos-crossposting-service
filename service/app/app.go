@@ -7,8 +7,18 @@ import (
 	"github.com/boreq/errors"
 	"github.com/planetary-social/nos-crossposting-service/service/domain"
 	"github.com/planetary-social/nos-crossposting-service/service/domain/accounts"
-	"github.com/planetary-social/nos-crossposting-service/service/domain/notifications"
 	"github.com/planetary-social/nos-crossposting-service/service/domain/sessions"
+)
+
+var (
+	RelayConnectionStateInitializing = RelayConnectionState{"initializing"}
+	RelayConnectionStateConnected    = RelayConnectionState{"connected"}
+	RelayConnectionStateDisconnected = RelayConnectionState{"disconnected"}
+)
+
+var (
+	ErrAccountDoesNotExist = errors.New("account doesn't exist")
+	ErrSessionDoesNotExist = errors.New("session doesn't exist")
 )
 
 type TransactionProvider interface {
@@ -21,8 +31,6 @@ type Adapters struct {
 	PublicKeys PublicKeyRepository
 }
 
-var ErrAccountDoesNotExist = errors.New("account doesn't exist")
-
 type AccountRepository interface {
 	// Returns ErrAccountDoesNotExist.
 	GetByTwitterID(twitterID accounts.TwitterID) (*accounts.Account, error)
@@ -32,8 +40,6 @@ type AccountRepository interface {
 
 	Save(account *accounts.Account) error
 }
-
-var ErrSessionDoesNotExist = errors.New("session doesn't exist")
 
 type SessionRepository interface {
 	// Returns ErrSessionDoesNotExist.
@@ -53,6 +59,7 @@ type RelayRepository interface {
 
 type PublicKeyRepository interface {
 	Save(linkedPublicKey *domain.LinkedPublicKey) error
+	List() ([]*domain.LinkedPublicKey, error)
 }
 
 type EventRepository interface {
@@ -60,8 +67,6 @@ type EventRepository interface {
 	Get(ctx context.Context, id domain.EventId) (domain.Event, error)
 	Exists(ctx context.Context, id domain.EventId) (bool, error)
 	GetEvents(ctx context.Context, filters domain.Filters) <-chan EventOrError
-	SaveNotificationForEvent(notification notifications.Notification) error
-	GetNotifications(ctx context.Context, id domain.EventId) ([]notifications.Notification, error)
 }
 
 type TagRepository interface {
@@ -73,13 +78,10 @@ type TagRepository interface {
 //}
 
 type Application struct {
-	SaveReceivedEvent *SaveReceivedEventHandler
-
-	GetRelays        *GetRelaysHandler
-	GetPublicKeys    *GetPublicKeysHandler
-	GetTokens        *GetTokensHandler
-	GetEvents        *GetEventsHandler
-	GetNotifications *GetNotificationsHandler
+	GetRelays     *GetRelaysHandler
+	GetPublicKeys *GetPublicKeysHandler
+	GetTokens     *GetTokensHandler
+	GetEvents     *GetEventsHandler
 
 	GetSessionAccount *GetSessionAccountHandler
 	LoginOrRegister   *LoginOrRegisterHandler
@@ -130,7 +132,9 @@ type ReceivedEventSubscriber interface {
 
 type Metrics interface {
 	StartApplicationCall(handlerName string) ApplicationCall
-	MeasureRelayDownloadersState(n int, state RelayDownloaderState)
+	ReportNumberOfPublicKeyDownloaders(n int)
+	ReportNumberOfPublicKeyDownloaderRelays(publicKey domain.PublicKey, n int)
+	ReportRelayConnectionState(relayAddress domain.RelayAddress, state RelayConnectionState)
 }
 
 type ApplicationCall interface {
@@ -139,15 +143,18 @@ type ApplicationCall interface {
 	End(err *error)
 }
 
-type EventWasAlreadySavedCache interface {
-	MarkEventAsAlreadySaved(id domain.EventId)
-	EventWasAlreadySaved(id domain.EventId) bool
-}
-
 type AccountIDGenerator interface {
 	GenerateAccountID() (accounts.AccountID, error)
 }
 
 type SessionIDGenerator interface {
 	GenerateSessionID() (sessions.SessionID, error)
+}
+
+type RelayConnectionState struct {
+	s string
+}
+
+func (r RelayConnectionState) String() string {
+	return r.s
 }
