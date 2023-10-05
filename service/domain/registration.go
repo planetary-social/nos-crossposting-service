@@ -89,6 +89,14 @@ func NewRelayAddress(s string) (RelayAddress, error) {
 	return RelayAddress{s: s}, nil
 }
 
+func MustNewRelayAddress(s string) RelayAddress {
+	v, err := NewRelayAddress(s)
+	if err != nil {
+		panic(err)
+	}
+	return v
+}
+
 func (r RelayAddress) String() string {
 	return r.s
 }

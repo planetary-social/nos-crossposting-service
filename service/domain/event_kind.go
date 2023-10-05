@@ -16,9 +16,11 @@ func ShouldDownloadEventKind(eventKind EventKind) bool {
 }
 
 var (
+	EventKindMetadata               = MustNewEventKind(0)
 	EventKindNote                   = MustNewEventKind(1)
 	EventKindReaction               = MustNewEventKind(7)
 	EventKindEncryptedDirectMessage = MustNewEventKind(4)
+	EventKindRelayListMetadata      = MustNewEventKind(10002)
 )
 
 type EventKind struct {

@@ -55,7 +55,11 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 	server := http.NewServer(configConfig, application, logger)
 	metricsServer := http.NewMetricsServer(prometheusPrometheus, configConfig, logger)
 	receivedEventPubSub := pubsub.NewReceivedEventPubSub()
-	purplePages := adapters.NewPurplePages()
+	purplePages, err := adapters.NewPurplePages(contextContext, logger)
+	if err != nil {
+		cleanup()
+		return Service{}, nil, err
+	}
 	relayEventDownloader := adapters.NewRelayEventDownloader(contextContext, logger)
 	downloader := app.NewDownloader(genericTransactionProvider, receivedEventPubSub, logger, prometheusPrometheus, purplePages, relayEventDownloader)
 	saveReceivedEventHandler := app.NewSaveReceivedEventHandler(genericTransactionProvider, logger, prometheusPrometheus)
@@ -96,7 +100,11 @@ func BuildIntegrationService(contextContext context.Context, configConfig config
 	server := http.NewServer(configConfig, application, logger)
 	metricsServer := http.NewMetricsServer(prometheusPrometheus, configConfig, logger)
 	receivedEventPubSub := pubsub.NewReceivedEventPubSub()
-	purplePages := adapters.NewPurplePages()
+	purplePages, err := adapters.NewPurplePages(contextContext, logger)
+	if err != nil {
+		cleanup()
+		return IntegrationService{}, nil, err
+	}
 	relayEventDownloader := adapters.NewRelayEventDownloader(contextContext, logger)
 	downloader := app.NewDownloader(genericTransactionProvider, receivedEventPubSub, logger, prometheusPrometheus, purplePages, relayEventDownloader)
 	saveReceivedEventHandler := app.NewSaveReceivedEventHandler(genericTransactionProvider, logger, prometheusPrometheus)

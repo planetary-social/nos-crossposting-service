@@ -13,6 +13,7 @@ import (
 )
 
 const (
+	howFarIntoThePastToLook               = 24 * time.Hour
 	storeMetricsEvery                     = 30 * time.Second
 	refreshDownloaderPublicKeysEvery      = 5 * time.Minute
 	refreshPublicKeyDownloaderRelaysEvery = 60 * time.Minute
@@ -27,7 +28,7 @@ type RelaySource interface {
 }
 
 type RelayEventDownloader interface {
-	GetEvents(ctx context.Context, publicKey domain.PublicKey, relayAddress domain.RelayAddress) <-chan domain.Event
+	GetEvents(ctx context.Context, publicKey domain.PublicKey, relayAddress domain.RelayAddress, eventKinds []domain.EventKind, maxAge *time.Duration) <-chan EventOrEndOfSavedEvents
 }
 
 type Downloader struct {
@@ -272,7 +273,31 @@ func (d *PublicKeyDownloader) refreshRelays(ctx context.Context) error {
 }
 
 func (d *PublicKeyDownloader) downloadMessages(ctx context.Context, relayAddress domain.RelayAddress) {
-	for event := range d.relayEventDownloader.GetEvents(ctx, d.publicKey, relayAddress) {
-		d.receivedEventPublisher.Publish(relayAddress, event)
+	t := howFarIntoThePastToLook
+	for eventOrEOSE := range d.relayEventDownloader.GetEvents(ctx, d.publicKey, relayAddress, domain.EventKindsToDownload(), &t) {
+		if !eventOrEOSE.EOSE() {
+			d.receivedEventPublisher.Publish(relayAddress, eventOrEOSE.Event())
+		}
 	}
+}
+
+type EventOrEndOfSavedEvents struct {
+	event domain.Event
+	eose  bool
+}
+
+func NewEventOrEndOfSavedEventsWithEvent(event domain.Event) EventOrEndOfSavedEvents {
+	return EventOrEndOfSavedEvents{event: event}
+}
+
+func NewEventOrEndOfSavedEventsWithEOSE() EventOrEndOfSavedEvents {
+	return EventOrEndOfSavedEvents{eose: true}
+}
+
+func (e *EventOrEndOfSavedEvents) Event() domain.Event {
+	return e.event
+}
+
+func (e *EventOrEndOfSavedEvents) EOSE() bool {
+	return e.eose
 }

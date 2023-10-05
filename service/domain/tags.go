@@ -6,7 +6,10 @@ import (
 	"github.com/boreq/errors"
 )
 
-var tagProfile = MustNewEventTagName("p")
+var (
+	tagProfile = MustNewEventTagName("p")
+	tagRelay   = MustNewEventTagName("r")
+)
 
 func GetMentionsFromTags(tags []EventTag) ([]PublicKey, error) {
 	var mentions []PublicKey
@@ -58,11 +61,22 @@ func (e EventTag) IsProfile() bool {
 	return e.name == tagProfile
 }
 
+func (e EventTag) IsRelay() bool {
+	return e.name == tagRelay
+}
+
 func (e EventTag) Profile() (PublicKey, error) {
 	if !e.IsProfile() {
 		return PublicKey{}, errors.New("not a profile tag")
 	}
 	return NewPublicKeyFromHex(e.tag[1])
+}
+
+func (e EventTag) Relay() (RelayAddress, error) {
+	if !e.IsRelay() {
+		return RelayAddress{}, errors.New("not a relay address tag")
+	}
+	return NewRelayAddress(e.tag[1])
 }
 
 type EventTagName struct {
