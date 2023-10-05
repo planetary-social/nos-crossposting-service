@@ -188,7 +188,7 @@ func NewPublicKeyDownloader(
 		relaySource:            relaySource,
 		relayEventDownloader:   relayEventDownloader,
 		metrics:                metrics,
-		logger:                 logger.New(fmt.Sprintf("publicKeyDownloader(%s)", publicKey)),
+		logger:                 logger.New(fmt.Sprintf("publicKeyDownloader(%s)", publicKey.Hex())),
 
 		publicKey: publicKey,
 

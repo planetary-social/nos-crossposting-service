@@ -42,7 +42,7 @@ func (h *SaveReceivedEventHandler) Handle(ctx context.Context, cmd ProcessReceiv
 		return fmt.Errorf("event '%s' shouldn't have been downloaded", cmd.event.String())
 	}
 
-	h.logger.Debug().
+	h.logger.Trace().
 		WithField("relay", cmd.relay.String()).
 		WithField("event.id", cmd.event.Id().Hex()).
 		WithField("event.kind", cmd.event.Kind().Int()).
