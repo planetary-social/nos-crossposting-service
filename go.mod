@@ -1,6 +1,6 @@
 module github.com/planetary-social/nos-crossposting-service
 
-go 1.20
+go 1.21
 
 require (
 	github.com/ThreeDotsLabs/watermill v1.3.1

@@ -111,7 +111,7 @@ func (d *Downloader) updateDownloaders(ctx context.Context) error {
 
 	for publicKey, cancelFn := range d.publicKeyDownloaders {
 		if !publicKeys.Contains(publicKey) {
-			d.logger.Debug().
+			d.logger.Trace().
 				WithField("publicKey", publicKey.Hex()).
 				Message("stopping a downloader")
 			delete(d.publicKeyDownloaders, publicKey)
@@ -121,7 +121,7 @@ func (d *Downloader) updateDownloaders(ctx context.Context) error {
 
 	for _, publicKey := range publicKeys.List() {
 		if _, ok := d.publicKeyDownloaders[publicKey]; !ok {
-			d.logger.Debug().
+			d.logger.Trace().
 				WithField("publicKey", publicKey.Hex()).
 				Message("creating a downloader")
 
@@ -191,6 +191,8 @@ func NewPublicKeyDownloader(
 		logger:                 logger.New(fmt.Sprintf("publicKeyDownloader(%s)", publicKey)),
 
 		publicKey: publicKey,
+
+		downloaders: make(map[domain.RelayAddress]context.CancelFunc),
 	}
 	return v
 }
@@ -233,14 +235,19 @@ func (d *PublicKeyDownloader) storeMetrics() {
 	d.metrics.ReportNumberOfPublicKeyDownloaderRelays(d.publicKey, len(d.downloaders))
 }
 
-func (d *PublicKeyDownloader) refreshRelays(ctx context.Context) error {
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
+func (d *PublicKeyDownloader) refreshRelays(longCtx context.Context) error {
+	fnCtx, fnCtxCancel := context.WithCancel(longCtx)
+	defer fnCtxCancel()
 
-	relayAddressess, err := d.relaySource.GetRelays(ctx, d.publicKey)
+	relayAddressess, err := d.relaySource.GetRelays(fnCtx, d.publicKey)
 	if err != nil {
 		return errors.Wrap(err, "error getting relayAddressess")
 	}
+
+	d.logger.Debug().
+		WithField("numberOfAddresses", len(relayAddressess)).
+		WithField("publicKey", d.publicKey.Hex()).
+		Message("got relay addresses")
 
 	relayAddressesSet := internal.NewSet(relayAddressess)
 
@@ -249,9 +256,9 @@ func (d *PublicKeyDownloader) refreshRelays(ctx context.Context) error {
 
 	for relayAddress, cancelFn := range d.downloaders {
 		if !relayAddressesSet.Contains(relayAddress) {
-			d.logger.Debug().
+			d.logger.Trace().
 				WithField("relayAddress", relayAddress.String()).
-				Message("stopping a downloader")
+				Message("stopping a relay downloader")
 			delete(d.downloaders, relayAddress)
 			cancelFn()
 		}
@@ -259,11 +266,11 @@ func (d *PublicKeyDownloader) refreshRelays(ctx context.Context) error {
 
 	for _, relayAddress := range relayAddressesSet.List() {
 		if _, ok := d.downloaders[relayAddress]; !ok {
-			d.logger.Debug().
+			d.logger.Trace().
 				WithField("relayAddress", relayAddress.String()).
-				Message("creating a downloader")
+				Message("creating a relay downloader")
 
-			ctx, cancel := context.WithCancel(ctx)
+			ctx, cancel := context.WithCancel(longCtx)
 			go d.downloadMessages(ctx, relayAddress)
 			d.downloaders[relayAddress] = cancel
 		}

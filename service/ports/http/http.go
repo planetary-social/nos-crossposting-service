@@ -3,7 +3,6 @@ package http
 import (
 	"context"
 	"embed"
-	"fmt"
 	"html/template"
 	"net"
 	"net/http"
@@ -59,7 +58,7 @@ func (s *Server) ListenAndServe(ctx context.Context) error {
 	go func() {
 		<-ctx.Done()
 		if err := listener.Close(); err != nil {
-			fmt.Println("error closing listener:", err)
+			s.logger.Error().WithError(err).Message("error closing listener")
 		}
 	}()
 
