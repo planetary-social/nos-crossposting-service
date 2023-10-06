@@ -11,6 +11,8 @@ import (
 
 var hardcodedRelayAddresses = []domain.RelayAddress{
 	domain.MustNewRelayAddress("wss://relay.damus.io"),
+	domain.MustNewRelayAddress("wss://nos.lol"),
+	domain.MustNewRelayAddress("wss://relay.current.fyi"),
 }
 
 type RelaySource struct {
