@@ -61,7 +61,7 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 		return Service{}, nil, err
 	}
 	relaySource := adapters.NewRelaySource(logger, purplePages)
-	relayEventDownloader := adapters.NewRelayEventDownloader(contextContext, logger)
+	relayEventDownloader := adapters.NewRelayEventDownloader(contextContext, logger, prometheusPrometheus)
 	downloader := app.NewDownloader(genericTransactionProvider, receivedEventPubSub, logger, prometheusPrometheus, relaySource, relayEventDownloader)
 	saveReceivedEventHandler := app.NewSaveReceivedEventHandler(genericTransactionProvider, logger, prometheusPrometheus)
 	receivedEventSubscriber := memorypubsub.NewReceivedEventSubscriber(receivedEventPubSub, saveReceivedEventHandler, logger)
@@ -106,7 +106,7 @@ func BuildIntegrationService(contextContext context.Context, configConfig config
 		cleanup()
 		return IntegrationService{}, nil, err
 	}
-	relayEventDownloader := adapters.NewRelayEventDownloader(contextContext, logger)
+	relayEventDownloader := adapters.NewRelayEventDownloader(contextContext, logger, prometheusPrometheus)
 	downloader := app.NewDownloader(genericTransactionProvider, receivedEventPubSub, logger, prometheusPrometheus, purplePages, relayEventDownloader)
 	saveReceivedEventHandler := app.NewSaveReceivedEventHandler(genericTransactionProvider, logger, prometheusPrometheus)
 	receivedEventSubscriber := memorypubsub.NewReceivedEventSubscriber(receivedEventPubSub, saveReceivedEventHandler, logger)

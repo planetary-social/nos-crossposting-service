@@ -75,10 +75,14 @@ func (r *RelayConnection) GetEvents(ctx context.Context, publicKey domain.Public
 	return ch
 }
 
-func (r *RelayConnection) GetState() app.RelayConnectionState {
+func (r *RelayConnection) State() app.RelayConnectionState {
 	r.stateMutex.Lock()
 	defer r.stateMutex.Unlock()
 	return r.state
+}
+
+func (r *RelayConnection) Address() domain.RelayAddress {
+	return r.address
 }
 
 func (r *RelayConnection) removeChannel(publicKey domain.PublicKey, chToRemove chan app.EventOrEndOfSavedEvents) error {
