@@ -53,5 +53,16 @@ func (m *Migrations) Execute(ctx context.Context) error {
 		return errors.Wrap(err, "error creating the public keys table")
 	}
 
+	_, err = m.db.Exec(`
+		CREATE TABLE IF NOT EXISTS processed_events (
+			twitter_id INTEGER,
+			event_id TEXT,
+			PRIMARY KEY(twitter_id, event_id)
+		);`,
+	)
+	if err != nil {
+		return errors.Wrap(err, "error creating the processed events table")
+	}
+
 	return nil
 }

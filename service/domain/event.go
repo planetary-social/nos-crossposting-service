@@ -88,7 +88,7 @@ func (e Event) Id() EventId {
 	return e.id
 }
 
-func (e Event) PubKey() PublicKey {
+func (e Event) PublicKey() PublicKey {
 	return e.pubKey
 }
 

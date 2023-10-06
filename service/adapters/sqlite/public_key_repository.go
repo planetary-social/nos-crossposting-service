@@ -47,6 +47,20 @@ FROM public_keys
 	return m.readPublicKeys(rows)
 }
 
+func (m *PublicKeyRepository) ListByPublicKey(publicKey domain.PublicKey) ([]*domain.LinkedPublicKey, error) {
+	rows, err := m.tx.Query(`
+SELECT account_id, public_key, created_at
+FROM public_keys
+WHERE public_key = $1`,
+		publicKey.Hex(),
+	)
+	if err != nil {
+		return nil, errors.Wrap(err, "query error")
+	}
+
+	return m.readPublicKeys(rows)
+}
+
 func (m *PublicKeyRepository) readPublicKeys(rows *sql.Rows) ([]*domain.LinkedPublicKey, error) {
 	var results []*domain.LinkedPublicKey
 	for rows.Next() {

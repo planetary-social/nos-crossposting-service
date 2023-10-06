@@ -6,7 +6,6 @@ import (
 
 	"github.com/planetary-social/nos-crossposting-service/internal/fixtures"
 	"github.com/planetary-social/nos-crossposting-service/service/adapters/sqlite"
-	"github.com/planetary-social/nos-crossposting-service/service/adapters/sqlite/tests"
 	"github.com/planetary-social/nos-crossposting-service/service/app"
 	"github.com/planetary-social/nos-crossposting-service/service/domain/accounts"
 	"github.com/stretchr/testify/require"
@@ -14,7 +13,7 @@ import (
 
 func TestAccountRepository_GetByAccountIDReturnsPredefinedErrorWhenDataIsNotAvailable(t *testing.T) {
 	ctx := fixtures.TestContext(t)
-	adapters := tests.NewTestAdapters(ctx, t)
+	adapters := NewTestAdapters(ctx, t)
 
 	err := adapters.TransactionProvider.Transact(ctx, func(ctx context.Context, adapters sqlite.TestAdapters) error {
 		_, err := adapters.AccountRepository.GetByAccountID(fixtures.SomeAccountID())
@@ -26,7 +25,7 @@ func TestAccountRepository_GetByAccountIDReturnsPredefinedErrorWhenDataIsNotAvai
 
 func TestAccountRepository_GetByTwitterIDReturnsPredefinedErrorWhenDataIsNotAvailable(t *testing.T) {
 	ctx := fixtures.TestContext(t)
-	adapters := tests.NewTestAdapters(ctx, t)
+	adapters := NewTestAdapters(ctx, t)
 
 	err := adapters.TransactionProvider.Transact(ctx, func(ctx context.Context, adapters sqlite.TestAdapters) error {
 		_, err := adapters.AccountRepository.GetByTwitterID(fixtures.SomeTwitterID())
@@ -38,7 +37,7 @@ func TestAccountRepository_GetByTwitterIDReturnsPredefinedErrorWhenDataIsNotAvai
 
 func TestAccountRepository_ItIsPossibleToRetrieveSavedData(t *testing.T) {
 	ctx := fixtures.TestContext(t)
-	adapters := tests.NewTestAdapters(ctx, t)
+	adapters := NewTestAdapters(ctx, t)
 
 	accountID := fixtures.SomeAccountID()
 	twitterID := fixtures.SomeTwitterID()

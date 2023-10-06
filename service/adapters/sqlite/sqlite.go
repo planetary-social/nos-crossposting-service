@@ -12,9 +12,10 @@ import (
 )
 
 type TestAdapters struct {
-	SessionRepository   *SessionRepository
-	AccountRepository   *AccountRepository
-	PublicKeyRepository *PublicKeyRepository
+	SessionRepository        *SessionRepository
+	AccountRepository        *AccountRepository
+	PublicKeyRepository      *PublicKeyRepository
+	ProcessedEventRepository *ProcessedEventRepository
 }
 
 type TestedItems struct {

@@ -7,7 +7,6 @@ import (
 
 	"github.com/planetary-social/nos-crossposting-service/internal/fixtures"
 	"github.com/planetary-social/nos-crossposting-service/service/adapters/sqlite"
-	"github.com/planetary-social/nos-crossposting-service/service/adapters/sqlite/tests"
 	"github.com/planetary-social/nos-crossposting-service/service/app"
 	"github.com/planetary-social/nos-crossposting-service/service/domain/sessions"
 	"github.com/stretchr/testify/require"
@@ -15,7 +14,7 @@ import (
 
 func TestSessionRepository_GetReturnsPredefinedErrorWhenDataIsNotAvailable(t *testing.T) {
 	ctx := fixtures.TestContext(t)
-	adapters := tests.NewTestAdapters(ctx, t)
+	adapters := NewTestAdapters(ctx, t)
 
 	err := adapters.TransactionProvider.Transact(ctx, func(ctx context.Context, adapters sqlite.TestAdapters) error {
 		_, err := adapters.SessionRepository.Get(fixtures.SomeSessionID())
@@ -27,7 +26,7 @@ func TestSessionRepository_GetReturnsPredefinedErrorWhenDataIsNotAvailable(t *te
 
 func TestSessionRepository_ItIsPossibleToRetrieveSavedData(t *testing.T) {
 	ctx := fixtures.TestContext(t)
-	adapters := tests.NewTestAdapters(ctx, t)
+	adapters := NewTestAdapters(ctx, t)
 
 	sessionID := fixtures.SomeSessionID()
 	accountID := fixtures.SomeAccountID()

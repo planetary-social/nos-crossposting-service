@@ -159,10 +159,15 @@ func buildTransactionSqliteAdapters(db *sql.DB, tx *sql.Tx, diBuildTransactionSq
 	if err != nil {
 		return app.Adapters{}, err
 	}
+	processedEventRepository, err := sqlite.NewProcessedEventRepository(tx)
+	if err != nil {
+		return app.Adapters{}, err
+	}
 	appAdapters := app.Adapters{
-		Accounts:   accountRepository,
-		Sessions:   sessionRepository,
-		PublicKeys: publicKeyRepository,
+		Accounts:        accountRepository,
+		Sessions:        sessionRepository,
+		PublicKeys:      publicKeyRepository,
+		ProcessedEvents: processedEventRepository,
 	}
 	return appAdapters, nil
 }
@@ -180,10 +185,15 @@ func buildTestTransactionSqliteAdapters(db *sql.DB, tx *sql.Tx, diBuildTransacti
 	if err != nil {
 		return sqlite.TestAdapters{}, err
 	}
+	processedEventRepository, err := sqlite.NewProcessedEventRepository(tx)
+	if err != nil {
+		return sqlite.TestAdapters{}, err
+	}
 	testAdapters := sqlite.TestAdapters{
-		SessionRepository:   sessionRepository,
-		AccountRepository:   accountRepository,
-		PublicKeyRepository: publicKeyRepository,
+		SessionRepository:        sessionRepository,
+		AccountRepository:        accountRepository,
+		PublicKeyRepository:      publicKeyRepository,
+		ProcessedEventRepository: processedEventRepository,
 	}
 	return testAdapters, nil
 }

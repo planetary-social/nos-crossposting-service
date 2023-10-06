@@ -69,6 +69,10 @@ func SomeString() string {
 	return randSeq(10)
 }
 
+func SomeEventID() domain.EventId {
+	return domain.MustNewEventId(SomeHexBytesOfLen(32))
+}
+
 func SomeAccountID() accounts.AccountID {
 	return accounts.MustNewAccountID(SomeHexBytesOfLen(10))
 }

@@ -57,3 +57,56 @@ func TestPublicKeyRepository_ItIsPossibleToRetrieveSavedData(t *testing.T) {
 	})
 	require.NoError(t, err)
 }
+
+func TestPublicKeyRepository_ListByPublicKeyReturnsOnlyRelevantData(t *testing.T) {
+	ctx := fixtures.TestContext(t)
+	adapters := NewTestAdapters(ctx, t)
+
+	accountID := fixtures.SomeAccountID()
+	twitterID := fixtures.SomeTwitterID()
+
+	account, err := accounts.NewAccount(accountID, twitterID)
+	require.NoError(t, err)
+
+	err = adapters.TransactionProvider.Transact(ctx, func(ctx context.Context, adapters sqlite.TestAdapters) error {
+		err = adapters.AccountRepository.Save(account)
+		require.NoError(t, err)
+
+		return nil
+	})
+	require.NoError(t, err)
+
+	createdAt := time.Now()
+	publicKey1 := fixtures.SomePublicKey()
+	publicKey2 := fixtures.SomePublicKey()
+
+	linkedPublicKey1, err := domain.NewLinkedPublicKey(accountID, publicKey1, createdAt)
+	require.NoError(t, err)
+
+	linkedPublicKey2, err := domain.NewLinkedPublicKey(accountID, publicKey2, createdAt)
+	require.NoError(t, err)
+
+	err = adapters.TransactionProvider.Transact(ctx, func(ctx context.Context, adapters sqlite.TestAdapters) error {
+		err = adapters.PublicKeyRepository.Save(linkedPublicKey1)
+		require.NoError(t, err)
+
+		err = adapters.PublicKeyRepository.Save(linkedPublicKey2)
+		require.NoError(t, err)
+
+		return nil
+	})
+	require.NoError(t, err)
+
+	err = adapters.TransactionProvider.Transact(ctx, func(ctx context.Context, adapters sqlite.TestAdapters) error {
+		results, err := adapters.PublicKeyRepository.ListByPublicKey(publicKey1)
+		require.NoError(t, err)
+
+		require.Len(t, results, 1)
+		require.Equal(t, linkedPublicKey1.AccountID(), results[0].AccountID())
+		require.Equal(t, linkedPublicKey1.PublicKey(), results[0].PublicKey())
+		require.Equal(t, linkedPublicKey1.CreatedAt().Truncate(time.Second), results[0].CreatedAt().Truncate(time.Second))
+
+		return nil
+	})
+	require.NoError(t, err)
+}

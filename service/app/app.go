@@ -44,12 +44,19 @@ type SessionRepository interface {
 type PublicKeyRepository interface {
 	Save(linkedPublicKey *domain.LinkedPublicKey) error
 	List() ([]*domain.LinkedPublicKey, error)
+	ListByPublicKey(publicKey domain.PublicKey) ([]*domain.LinkedPublicKey, error)
+}
+
+type ProcessedEventRepository interface {
+	Save(eventID domain.EventId, twitterID accounts.TwitterID) error
+	WasProcessed(eventID domain.EventId, twitterID accounts.TwitterID) (bool, error)
 }
 
 type Adapters struct {
-	Accounts   AccountRepository
-	Sessions   SessionRepository
-	PublicKeys PublicKeyRepository
+	Accounts        AccountRepository
+	Sessions        SessionRepository
+	PublicKeys      PublicKeyRepository
+	ProcessedEvents ProcessedEventRepository
 }
 
 type Application struct {
