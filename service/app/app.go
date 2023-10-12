@@ -115,6 +115,7 @@ type Metrics interface {
 	ReportNumberOfPublicKeyDownloaders(n int)
 	ReportNumberOfPublicKeyDownloaderRelays(publicKey domain.PublicKey, n int)
 	ReportRelayConnectionState(relayAddress domain.RelayAddress, state RelayConnectionState)
+	ReportCallingTwitterAPIToPostATweet(err error)
 }
 
 type ApplicationCall interface {

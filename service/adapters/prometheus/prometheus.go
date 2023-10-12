@@ -39,6 +39,7 @@ type Prometheus struct {
 	numberOfPublicKeyDownloadersGauge      prometheus.Gauge
 	numberOfPublicKeyDownloaderRelaysGauge *prometheus.GaugeVec
 	relayConnectionStateGauge              *prometheus.GaugeVec
+	twitterAPICallsToPostTweetCounter      *prometheus.CounterVec
 
 	registry *prometheus.Registry
 
@@ -94,6 +95,13 @@ func NewPrometheus(logger logging.Logger) (*Prometheus, error) {
 		},
 		[]string{labelRelayAddress, labelState},
 	)
+	twitterAPICallsToPostTweetCounter := prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "twitter_api_calls_to_post_tweet",
+			Help: "Total number of calls to Twitter API to post tweets.",
+		},
+		[]string{labelResult},
+	)
 
 	reg := prometheus.NewRegistry()
 	for _, v := range []prometheus.Collector{
@@ -104,6 +112,7 @@ func NewPrometheus(logger logging.Logger) (*Prometheus, error) {
 		numberOfPublicKeyDownloadersGauge,
 		numberOfPublicKeyDownloaderRelaysGauge,
 		relayConnectionStateGauge,
+		twitterAPICallsToPostTweetCounter,
 
 		collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}),
 		collectors.NewGoCollector(),
@@ -134,6 +143,7 @@ func NewPrometheus(logger logging.Logger) (*Prometheus, error) {
 		numberOfPublicKeyDownloadersGauge:      numberOfPublicKeyDownloadersGauge,
 		numberOfPublicKeyDownloaderRelaysGauge: numberOfPublicKeyDownloaderRelaysGauge,
 		relayConnectionStateGauge:              relayConnectionStateGauge,
+		twitterAPICallsToPostTweetCounter:      twitterAPICallsToPostTweetCounter,
 
 		registry: reg,
 
@@ -170,6 +180,16 @@ func (p *Prometheus) ReportRelayConnectionState(relayAddress domain.RelayAddress
 		p.relayConnectionStateGauge.With(prometheus.Labels{labelRelayAddress: relayAddress.String(), labelState: app.RelayConnectionStateConnected.String()}).Set(0)
 	}
 	p.relayConnectionStateGauge.With(prometheus.Labels{labelRelayAddress: relayAddress.String(), labelState: state.String()}).Set(1)
+}
+
+func (p *Prometheus) ReportCallingTwitterAPIToPostATweet(err error) {
+	var labels prometheus.Labels
+	if err == nil {
+		labels = prometheus.Labels{labelResult: labelResultValueSuccess}
+	} else {
+		labels = prometheus.Labels{labelResult: labelResultValueError}
+	}
+	p.twitterAPICallsToPostTweetCounter.With(labels).Inc()
 }
 
 type ApplicationCall struct {
