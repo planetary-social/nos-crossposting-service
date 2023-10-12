@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/boreq/errors"
+	oauth12 "github.com/dghubble/gologin/v2/oauth1"
 	"github.com/dghubble/gologin/v2/twitter"
 	"github.com/dghubble/oauth1"
 	twitterOAuth1 "github.com/dghubble/oauth1/twitter"
@@ -134,33 +135,57 @@ func (s *Server) renderError(w http.ResponseWriter, err error) {
 
 func (s *Server) issueSession() http.Handler {
 	fn := func(w http.ResponseWriter, req *http.Request) {
-		ctx := req.Context()
-		twitterUser, err := twitter.UserFromContext(ctx)
-		if err != nil {
+		if err := s.issueSessionErr(w, req); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		twitterID := accounts.NewTwitterID(twitterUser.ID)
-		cmd := app.NewLoginOrRegister(twitterID)
-
-		session, err := s.app.LoginOrRegister.Handle(req.Context(), cmd)
-		if err != nil {
-			s.renderError(w, err)
-			return
-		}
-
-		SetSessionIDToCookie(w, session.SessionID())
-
-		s.logger.Debug().
-			WithField("twitterID", twitterID.Int64()).
-			WithField("accountID", session.AccountID().String()).
-			WithField("sessionID", session.SessionID().String()).
-			Message("issuing a session")
-
 		http.Redirect(w, req, "/", http.StatusFound)
 	}
 	return http.HandlerFunc(fn)
+}
+
+func (s *Server) issueSessionErr(w http.ResponseWriter, req *http.Request) error {
+	ctx := req.Context()
+
+	twitterUser, err := twitter.UserFromContext(ctx)
+	if err != nil {
+		return errors.Wrap(err, "error getting twitter user from context")
+	}
+
+	accessTokenString, accessSecretString, err := oauth12.AccessTokenFromContext(ctx)
+	if err != nil {
+		return errors.Wrap(err, "error getting access token from context")
+	}
+
+	twitterID := accounts.NewTwitterID(twitterUser.ID)
+
+	accessToken, err := accounts.NewTwitterUserAccessToken(accessTokenString)
+	if err != nil {
+		return errors.Wrap(err, "error creating user access token")
+	}
+
+	accessSecret, err := accounts.NewTwitterUserAccessSecret(accessSecretString)
+	if err != nil {
+		return errors.Wrap(err, "error creating user access secret")
+	}
+
+	cmd := app.NewLoginOrRegister(twitterID, accessToken, accessSecret)
+
+	session, err := s.app.LoginOrRegister.Handle(req.Context(), cmd)
+	if err != nil {
+		return errors.Wrap(err, "error calling login or register handler")
+	}
+
+	SetSessionIDToCookie(w, session.SessionID())
+
+	s.logger.Debug().
+		WithField("twitterID", twitterID.Int64()).
+		WithField("accountID", session.AccountID().String()).
+		WithField("sessionID", session.SessionID().String()).
+		Message("issuing a session")
+
+	return nil
 }
 
 func (s *Server) getAccountFromRequest(r *http.Request) (*accounts.Account, error) {

@@ -84,6 +84,14 @@ func NewEvent(libevent nostr.Event) (Event, error) {
 	}, nil
 }
 
+func NewEventFromJSON(j []byte) (Event, error) {
+	var event nostr.Event
+	if err := json.Unmarshal(j, &event); err != nil {
+		return Event{}, errors.Wrap(err, "error unmarshaling json")
+	}
+	return NewEvent(event)
+}
+
 func (e Event) Id() EventId {
 	return e.id
 }

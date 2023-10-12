@@ -16,6 +16,8 @@ type TestAdapters struct {
 	AccountRepository        *AccountRepository
 	PublicKeyRepository      *PublicKeyRepository
 	ProcessedEventRepository *ProcessedEventRepository
+	UserTokensRepository     *UserTokensRepository
+	Publisher                *Publisher
 }
 
 type TestedItems struct {

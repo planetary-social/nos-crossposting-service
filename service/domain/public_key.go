@@ -39,6 +39,14 @@ func NewPublicKeyFromNpub(s string) (PublicKey, error) {
 	return NewPublicKeyFromHex(hexString.(string))
 }
 
+func (k PublicKey) Npub() string {
+	npub, err := nip19.EncodePublicKey(k.Hex())
+	if err != nil {
+		panic(err) // we already validated that public key is valid
+	}
+	return npub
+}
+
 func (k PublicKey) Hex() string {
 	return k.s
 }

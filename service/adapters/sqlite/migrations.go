@@ -4,16 +4,25 @@ import (
 	"context"
 	"database/sql"
 
+	watermillsql "github.com/ThreeDotsLabs/watermill-sql/v2/pkg/sql"
 	"github.com/boreq/errors"
 )
 
 type Migrations struct {
-	db *sql.DB
+	db                     *sql.DB
+	watermillSchemaAdapter watermillsql.SchemaAdapter
+	watermilOffsetsAdapter watermillsql.OffsetsAdapter
 }
 
-func NewMigrations(db *sql.DB) *Migrations {
+func NewMigrations(
+	db *sql.DB,
+	watermillSchemaAdapter watermillsql.SchemaAdapter,
+	watermillOffsetsAdapter watermillsql.OffsetsAdapter,
+) *Migrations {
 	return &Migrations{
-		db: db,
+		db:                     db,
+		watermillSchemaAdapter: watermillSchemaAdapter,
+		watermilOffsetsAdapter: watermillOffsetsAdapter,
 	}
 }
 
@@ -62,6 +71,32 @@ func (m *Migrations) Execute(ctx context.Context) error {
 	)
 	if err != nil {
 		return errors.Wrap(err, "error creating the processed events table")
+	}
+
+	_, err = m.db.Exec(`
+		CREATE TABLE IF NOT EXISTS user_tokens (
+			account_id TEXT PRIMARY KEY,
+			access_token TEXT,
+			access_secret TEXT,
+			FOREIGN KEY(account_id) REFERENCES accounts(account_id)
+		);`,
+	)
+	if err != nil {
+		return errors.Wrap(err, "error creating the user tokens table")
+	}
+
+	for _, topic := range []string{TweetCreatedTopic} {
+		for _, query := range m.watermillSchemaAdapter.SchemaInitializingQueries(topic) {
+			if _, err = m.db.Exec(query); err != nil {
+				return errors.Wrapf(err, "error initializing watermill schema for topic '%s'", topic)
+			}
+		}
+
+		for _, query := range m.watermilOffsetsAdapter.SchemaInitializingQueries(topic) {
+			if _, err = m.db.Exec(query); err != nil {
+				return errors.Wrapf(err, "error initializing watermill offsets for topic '%s'", topic)
+			}
+		}
 	}
 
 	return nil

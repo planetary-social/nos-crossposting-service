@@ -52,11 +52,35 @@ type ProcessedEventRepository interface {
 	WasProcessed(eventID domain.EventId, twitterID accounts.TwitterID) (bool, error)
 }
 
+type UserTokensRepository interface {
+	Save(userTokens *accounts.TwitterUserTokens) error
+	Get(id accounts.AccountID) (*accounts.TwitterUserTokens, error)
+}
+
+type Publisher interface {
+	PublishTweetCreated(accountID accounts.AccountID, tweet domain.Tweet) error
+}
+
+type TweetGenerator interface {
+	Generate(event domain.Event) ([]domain.Tweet, error)
+}
+
+type Twitter interface {
+	PostTweet(
+		ctx context.Context,
+		userAccessToken accounts.TwitterUserAccessToken,
+		userAccessSecret accounts.TwitterUserAccessSecret,
+		tweet domain.Tweet,
+	) error
+}
+
 type Adapters struct {
 	Accounts        AccountRepository
 	Sessions        SessionRepository
 	PublicKeys      PublicKeyRepository
 	ProcessedEvents ProcessedEventRepository
+	UserTokens      UserTokensRepository
+	Publisher       Publisher
 }
 
 type Application struct {

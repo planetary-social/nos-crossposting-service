@@ -1,3 +1,4 @@
 .idea
 run.sh
 database.sqlite
+database.sqlite-journal

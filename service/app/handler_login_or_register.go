@@ -11,11 +11,21 @@ import (
 )
 
 type LoginOrRegister struct {
-	twitterID accounts.TwitterID
+	twitterID    accounts.TwitterID
+	accessToken  accounts.TwitterUserAccessToken
+	accessSecret accounts.TwitterUserAccessSecret
 }
 
-func NewLoginOrRegister(twitterID accounts.TwitterID) LoginOrRegister {
-	return LoginOrRegister{twitterID: twitterID}
+func NewLoginOrRegister(
+	twitterID accounts.TwitterID,
+	accessToken accounts.TwitterUserAccessToken,
+	accessSecret accounts.TwitterUserAccessSecret,
+) LoginOrRegister {
+	return LoginOrRegister{
+		twitterID:    twitterID,
+		accessToken:  accessToken,
+		accessSecret: accessSecret,
+	}
 }
 
 type LoginOrRegisterHandler struct {
@@ -46,7 +56,6 @@ func (h *LoginOrRegisterHandler) Handle(ctx context.Context, cmd LoginOrRegister
 	defer h.metrics.StartApplicationCall("loginOrRegister").End(&err)
 
 	var result *sessions.Session
-
 	if err := h.transactionProvider.Transact(ctx, func(ctx context.Context, adapters Adapters) error {
 		account, err := h.createOrGetAccount(adapters, cmd.twitterID)
 		if err != nil {
@@ -63,8 +72,14 @@ func (h *LoginOrRegisterHandler) Handle(ctx context.Context, cmd LoginOrRegister
 			return errors.Wrap(err, "error creating a new session")
 		}
 
+		userTokens := accounts.NewTwitterUserTokens(account.AccountID(), cmd.accessToken, cmd.accessSecret)
+
 		if err := adapters.Sessions.Save(session); err != nil {
 			return errors.Wrap(err, "error saving a session")
+		}
+
+		if err := adapters.UserTokens.Save(userTokens); err != nil {
+			return errors.Wrap(err, "error saving user tokens")
 		}
 
 		result = session

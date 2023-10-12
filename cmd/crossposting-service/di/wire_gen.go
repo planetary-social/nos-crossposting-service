@@ -11,6 +11,7 @@ import (
 	"database/sql"
 	"testing"
 
+	"github.com/ThreeDotsLabs/watermill"
 	"github.com/google/wire"
 	"github.com/planetary-social/nos-crossposting-service/internal/fixtures"
 	"github.com/planetary-social/nos-crossposting-service/internal/logging"
@@ -18,10 +19,13 @@ import (
 	"github.com/planetary-social/nos-crossposting-service/service/adapters/prometheus"
 	"github.com/planetary-social/nos-crossposting-service/service/adapters/pubsub"
 	"github.com/planetary-social/nos-crossposting-service/service/adapters/sqlite"
+	"github.com/planetary-social/nos-crossposting-service/service/adapters/twitter"
 	"github.com/planetary-social/nos-crossposting-service/service/app"
 	"github.com/planetary-social/nos-crossposting-service/service/config"
+	"github.com/planetary-social/nos-crossposting-service/service/domain"
 	"github.com/planetary-social/nos-crossposting-service/service/ports/http"
 	"github.com/planetary-social/nos-crossposting-service/service/ports/memorypubsub"
+	pubsub2 "github.com/planetary-social/nos-crossposting-service/service/ports/pubsub"
 )
 
 // Injectors from wire.go:
@@ -35,7 +39,10 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 	if err != nil {
 		return Service{}, nil, err
 	}
-	diBuildTransactionSqliteAdaptersDependencies := buildTransactionSqliteAdaptersDependencies{}
+	watermillAdapter := logging.NewWatermillAdapter(logger)
+	diBuildTransactionSqliteAdaptersDependencies := buildTransactionSqliteAdaptersDependencies{
+		LoggerAdapter: watermillAdapter,
+	}
 	genericAdaptersFactoryFn := newAdaptersFactoryFn(diBuildTransactionSqliteAdaptersDependencies)
 	genericTransactionProvider := sqlite.NewTransactionProvider(db, genericAdaptersFactoryFn)
 	prometheusPrometheus, err := prometheus.NewPrometheus(logger)
@@ -63,10 +70,21 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 	relaySource := adapters.NewRelaySource(logger, purplePages)
 	relayEventDownloader := adapters.NewRelayEventDownloader(contextContext, logger, prometheusPrometheus)
 	downloader := app.NewDownloader(genericTransactionProvider, receivedEventPubSub, logger, prometheusPrometheus, relaySource, relayEventDownloader)
-	saveReceivedEventHandler := app.NewSaveReceivedEventHandler(genericTransactionProvider, logger, prometheusPrometheus)
-	receivedEventSubscriber := memorypubsub.NewReceivedEventSubscriber(receivedEventPubSub, saveReceivedEventHandler, logger)
-	migrations := sqlite.NewMigrations(db)
-	service := NewService(application, server, metricsServer, downloader, receivedEventSubscriber, migrations)
+	tweetGenerator := domain.NewTweetGenerator()
+	processReceivedEventHandler := app.NewProcessReceivedEventHandler(genericTransactionProvider, tweetGenerator, logger, prometheusPrometheus)
+	receivedEventSubscriber := memorypubsub.NewReceivedEventSubscriber(receivedEventPubSub, processReceivedEventHandler, logger)
+	twitterTwitter := twitter.NewTwitter(configConfig, logger)
+	sendTweetHandler := app.NewSendTweetHandler(genericTransactionProvider, twitterTwitter, logger, prometheusPrometheus)
+	schemaAdapter := sqlite.NewWatermillSchemaAdapter()
+	offsetsAdapter := sqlite.NewWatermillOffsetsAdapter()
+	subscriber, err := sqlite.NewWatermillSubscriber(db, watermillAdapter, schemaAdapter, offsetsAdapter)
+	if err != nil {
+		cleanup()
+		return Service{}, nil, err
+	}
+	tweetCreatedEventSubscriber := pubsub2.NewTweetCreatedEventSubscriber(sendTweetHandler, subscriber, logger)
+	migrations := sqlite.NewMigrations(db, schemaAdapter, offsetsAdapter)
+	service := NewService(application, server, metricsServer, downloader, receivedEventSubscriber, tweetCreatedEventSubscriber, migrations)
 	return service, func() {
 		cleanup()
 	}, nil
@@ -81,7 +99,10 @@ func BuildIntegrationService(contextContext context.Context, configConfig config
 	if err != nil {
 		return IntegrationService{}, nil, err
 	}
-	diBuildTransactionSqliteAdaptersDependencies := buildTransactionSqliteAdaptersDependencies{}
+	watermillAdapter := logging.NewWatermillAdapter(logger)
+	diBuildTransactionSqliteAdaptersDependencies := buildTransactionSqliteAdaptersDependencies{
+		LoggerAdapter: watermillAdapter,
+	}
 	genericAdaptersFactoryFn := newAdaptersFactoryFn(diBuildTransactionSqliteAdaptersDependencies)
 	genericTransactionProvider := sqlite.NewTransactionProvider(db, genericAdaptersFactoryFn)
 	prometheusPrometheus, err := prometheus.NewPrometheus(logger)
@@ -108,10 +129,21 @@ func BuildIntegrationService(contextContext context.Context, configConfig config
 	}
 	relayEventDownloader := adapters.NewRelayEventDownloader(contextContext, logger, prometheusPrometheus)
 	downloader := app.NewDownloader(genericTransactionProvider, receivedEventPubSub, logger, prometheusPrometheus, purplePages, relayEventDownloader)
-	saveReceivedEventHandler := app.NewSaveReceivedEventHandler(genericTransactionProvider, logger, prometheusPrometheus)
-	receivedEventSubscriber := memorypubsub.NewReceivedEventSubscriber(receivedEventPubSub, saveReceivedEventHandler, logger)
-	migrations := sqlite.NewMigrations(db)
-	service := NewService(application, server, metricsServer, downloader, receivedEventSubscriber, migrations)
+	tweetGenerator := domain.NewTweetGenerator()
+	processReceivedEventHandler := app.NewProcessReceivedEventHandler(genericTransactionProvider, tweetGenerator, logger, prometheusPrometheus)
+	receivedEventSubscriber := memorypubsub.NewReceivedEventSubscriber(receivedEventPubSub, processReceivedEventHandler, logger)
+	twitterMock := twitter.NewTwitterMock(logger)
+	sendTweetHandler := app.NewSendTweetHandler(genericTransactionProvider, twitterMock, logger, prometheusPrometheus)
+	schemaAdapter := sqlite.NewWatermillSchemaAdapter()
+	offsetsAdapter := sqlite.NewWatermillOffsetsAdapter()
+	subscriber, err := sqlite.NewWatermillSubscriber(db, watermillAdapter, schemaAdapter, offsetsAdapter)
+	if err != nil {
+		cleanup()
+		return IntegrationService{}, nil, err
+	}
+	tweetCreatedEventSubscriber := pubsub2.NewTweetCreatedEventSubscriber(sendTweetHandler, subscriber, logger)
+	migrations := sqlite.NewMigrations(db, schemaAdapter, offsetsAdapter)
+	service := NewService(application, server, metricsServer, downloader, receivedEventSubscriber, tweetCreatedEventSubscriber, migrations)
 	integrationService := IntegrationService{
 		Service: service,
 	}
@@ -133,10 +165,15 @@ func BuildTestAdapters(contextContext context.Context, tb testing.TB) (sqlite.Te
 	if err != nil {
 		return sqlite.TestedItems{}, nil, err
 	}
-	diBuildTransactionSqliteAdaptersDependencies := buildTransactionSqliteAdaptersDependencies{}
+	watermillAdapter := logging.NewWatermillAdapter(logger)
+	diBuildTransactionSqliteAdaptersDependencies := buildTransactionSqliteAdaptersDependencies{
+		LoggerAdapter: watermillAdapter,
+	}
 	genericAdaptersFactoryFn := newTestAdaptersFactoryFn(diBuildTransactionSqliteAdaptersDependencies)
 	genericTransactionProvider := sqlite.NewTestTransactionProvider(db, genericAdaptersFactoryFn)
-	migrations := sqlite.NewMigrations(db)
+	schemaAdapter := sqlite.NewWatermillSchemaAdapter()
+	offsetsAdapter := sqlite.NewWatermillOffsetsAdapter()
+	migrations := sqlite.NewMigrations(db, schemaAdapter, offsetsAdapter)
 	testedItems := sqlite.TestedItems{
 		TransactionProvider: genericTransactionProvider,
 		Migrations:          migrations,
@@ -163,11 +200,24 @@ func buildTransactionSqliteAdapters(db *sql.DB, tx *sql.Tx, diBuildTransactionSq
 	if err != nil {
 		return app.Adapters{}, err
 	}
+	userTokensRepository, err := sqlite.NewUserTokensRepository(tx)
+	if err != nil {
+		return app.Adapters{}, err
+	}
+	loggerAdapter := diBuildTransactionSqliteAdaptersDependencies.LoggerAdapter
+	schemaAdapter := sqlite.NewWatermillSchemaAdapter()
+	publisher, err := sqlite.NewWatermillPublisher(tx, loggerAdapter, schemaAdapter)
+	if err != nil {
+		return app.Adapters{}, err
+	}
+	sqlitePublisher := sqlite.NewPublisher(publisher)
 	appAdapters := app.Adapters{
 		Accounts:        accountRepository,
 		Sessions:        sessionRepository,
 		PublicKeys:      publicKeyRepository,
 		ProcessedEvents: processedEventRepository,
+		UserTokens:      userTokensRepository,
+		Publisher:       sqlitePublisher,
 	}
 	return appAdapters, nil
 }
@@ -189,11 +239,24 @@ func buildTestTransactionSqliteAdapters(db *sql.DB, tx *sql.Tx, diBuildTransacti
 	if err != nil {
 		return sqlite.TestAdapters{}, err
 	}
+	userTokensRepository, err := sqlite.NewUserTokensRepository(tx)
+	if err != nil {
+		return sqlite.TestAdapters{}, err
+	}
+	loggerAdapter := diBuildTransactionSqliteAdaptersDependencies.LoggerAdapter
+	schemaAdapter := sqlite.NewWatermillSchemaAdapter()
+	publisher, err := sqlite.NewWatermillPublisher(tx, loggerAdapter, schemaAdapter)
+	if err != nil {
+		return sqlite.TestAdapters{}, err
+	}
+	sqlitePublisher := sqlite.NewPublisher(publisher)
 	testAdapters := sqlite.TestAdapters{
 		SessionRepository:        sessionRepository,
 		AccountRepository:        accountRepository,
 		PublicKeyRepository:      publicKeyRepository,
 		ProcessedEventRepository: processedEventRepository,
+		UserTokensRepository:     userTokensRepository,
+		Publisher:                sqlitePublisher,
 	}
 	return testAdapters, nil
 }
@@ -209,6 +272,9 @@ func newTestAdaptersConfig(tb testing.TB) (config.Config, error) {
 }
 
 type buildTransactionSqliteAdaptersDependencies struct {
+	LoggerAdapter watermill.LoggerAdapter
 }
 
 var downloaderSet = wire.NewSet(app.NewDownloader)
+
+var tweetGeneratorSet = wire.NewSet(domain.NewTweetGenerator, wire.Bind(new(app.TweetGenerator), new(*domain.TweetGenerator)))

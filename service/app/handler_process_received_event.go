@@ -18,25 +18,28 @@ func NewProcessReceivedEvent(relay domain.RelayAddress, event domain.Event) Proc
 	return ProcessReceivedEvent{relay: relay, event: event}
 }
 
-type SaveReceivedEventHandler struct {
+type ProcessReceivedEventHandler struct {
 	transactionProvider TransactionProvider
+	tweetGenerator      TweetGenerator
 	logger              logging.Logger
 	metrics             Metrics
 }
 
-func NewSaveReceivedEventHandler(
+func NewProcessReceivedEventHandler(
 	transactionProvider TransactionProvider,
+	tweetGenerator TweetGenerator,
 	logger logging.Logger,
 	metrics Metrics,
-) *SaveReceivedEventHandler {
-	return &SaveReceivedEventHandler{
+) *ProcessReceivedEventHandler {
+	return &ProcessReceivedEventHandler{
 		transactionProvider: transactionProvider,
+		tweetGenerator:      tweetGenerator,
 		logger:              logger.New("processReceivedEventHandler"),
 		metrics:             metrics,
 	}
 }
 
-func (h *SaveReceivedEventHandler) Handle(ctx context.Context, cmd ProcessReceivedEvent) (err error) {
+func (h *ProcessReceivedEventHandler) Handle(ctx context.Context, cmd ProcessReceivedEvent) (err error) {
 	defer h.metrics.StartApplicationCall("processReceivedEvent").End(&err)
 
 	if !domain.ShouldDownloadEventKind(cmd.event.Kind()) {
@@ -52,6 +55,15 @@ func (h *SaveReceivedEventHandler) Handle(ctx context.Context, cmd ProcessReceiv
 		WithField("size", len(event.Raw())).
 		WithField("number_of_tags", len(event.Tags())).
 		Message("processing received event")
+
+	tweets, err := h.tweetGenerator.Generate(event)
+	if err != nil {
+		return errors.Wrapf(err, "error generating tweets for event '%s'", event.Id())
+	}
+
+	if thereIsNothingToDo := len(tweets) == 0; thereIsNothingToDo {
+		return nil
+	}
 
 	if err := h.transactionProvider.Transact(ctx, func(ctx context.Context, adapters Adapters) error {
 		linkedPublicKeys, err := adapters.PublicKeys.ListByPublicKey(event.PublicKey())
@@ -78,13 +90,14 @@ func (h *SaveReceivedEventHandler) Handle(ctx context.Context, cmd ProcessReceiv
 				continue
 			}
 
-			// todo post to twitter
-			h.logger.Debug().
-				WithField("twitterId", account.TwitterID()).
-				Message("should post event")
-
 			if err := adapters.ProcessedEvents.Save(event.Id(), account.TwitterID()); err != nil {
 				return errors.Wrap(err, "error saving that event was processed")
+			}
+
+			for _, tweet := range tweets {
+				if err := adapters.Publisher.PublishTweetCreated(account.AccountID(), tweet); err != nil {
+					return errors.Wrap(err, "error publishing tweet created event")
+				}
 			}
 		}
 
@@ -96,6 +109,6 @@ func (h *SaveReceivedEventHandler) Handle(ctx context.Context, cmd ProcessReceiv
 	return nil
 }
 
-func (h *SaveReceivedEventHandler) eventWasCreatedBeforePublicKeyWasLinked(event domain.Event, linkedPublicKey *domain.LinkedPublicKey) bool {
-	return linkedPublicKey.CreatedAt().Before(event.CreatedAt())
+func (h *ProcessReceivedEventHandler) eventWasCreatedBeforePublicKeyWasLinked(event domain.Event, linkedPublicKey *domain.LinkedPublicKey) bool {
+	return event.CreatedAt().Before(linkedPublicKey.CreatedAt())
 }

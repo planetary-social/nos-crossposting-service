@@ -43,6 +43,7 @@ FROM public_keys
 	if err != nil {
 		return nil, errors.Wrap(err, "query error")
 	}
+	defer rows.Close()
 
 	return m.readPublicKeys(rows)
 }
@@ -57,6 +58,7 @@ WHERE public_key = $1`,
 	if err != nil {
 		return nil, errors.Wrap(err, "query error")
 	}
+	defer rows.Close()
 
 	return m.readPublicKeys(rows)
 }
