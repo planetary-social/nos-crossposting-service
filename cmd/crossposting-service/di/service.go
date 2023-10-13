@@ -9,7 +9,7 @@ import (
 	"github.com/planetary-social/nos-crossposting-service/service/app"
 	"github.com/planetary-social/nos-crossposting-service/service/ports/http"
 	"github.com/planetary-social/nos-crossposting-service/service/ports/memorypubsub"
-	"github.com/planetary-social/nos-crossposting-service/service/ports/pubsub"
+	"github.com/planetary-social/nos-crossposting-service/service/ports/sqlitepubsub"
 )
 
 type Service struct {
@@ -18,7 +18,7 @@ type Service struct {
 	metricsServer               http.MetricsServer
 	downloader                  *app.Downloader
 	receivedEventSubscriber     *memorypubsub.ReceivedEventSubscriber
-	tweetCreatedEventSubscriber *pubsub.TweetCreatedEventSubscriber
+	tweetCreatedEventSubscriber *sqlitepubsub.TweetCreatedEventSubscriber
 	migrations                  *sqlite.Migrations
 }
 
@@ -28,7 +28,7 @@ func NewService(
 	metricsServer http.MetricsServer,
 	downloader *app.Downloader,
 	receivedEventSubscriber *memorypubsub.ReceivedEventSubscriber,
-	tweetCreatedEventSubscriber *pubsub.TweetCreatedEventSubscriber,
+	tweetCreatedEventSubscriber *sqlitepubsub.TweetCreatedEventSubscriber,
 	migrations *sqlite.Migrations,
 ) Service {
 	return Service{
