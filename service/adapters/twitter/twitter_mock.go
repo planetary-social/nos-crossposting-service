@@ -8,17 +8,17 @@ import (
 	"github.com/planetary-social/nos-crossposting-service/service/domain/accounts"
 )
 
-type TwitterMock struct {
+type NoopTwitter struct {
 	logger logging.Logger
 }
 
-func NewTwitterMock(logger logging.Logger) *TwitterMock {
-	return &TwitterMock{
-		logger: logger.New("twitterMock"),
+func NewNoopTwitter(logger logging.Logger) *NoopTwitter {
+	return &NoopTwitter{
+		logger: logger.New("noopTwitter"),
 	}
 }
 
-func (t *TwitterMock) PostTweet(
+func (t *NoopTwitter) PostTweet(
 	ctx context.Context,
 	userAccessToken accounts.TwitterUserAccessToken,
 	userAccessSecret accounts.TwitterUserAccessSecret,
@@ -26,6 +26,6 @@ func (t *TwitterMock) PostTweet(
 ) error {
 	t.logger.Debug().
 		WithField("text", tweet.Text()).
-		Message("triggered posting a tweet in mock Twitter adapter")
+		Message("triggered posting a tweet in a noop Twitter adapter")
 	return nil
 }

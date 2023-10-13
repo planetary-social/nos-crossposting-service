@@ -35,29 +35,6 @@ func BuildService(context.Context, config.Config) (Service, func(), error) {
 	return Service{}, nil, nil
 }
 
-type IntegrationService struct {
-	Service Service
-}
-
-func BuildIntegrationService(context.Context, config.Config) (IntegrationService, func(), error) {
-	wire.Build(
-		wire.Struct(new(IntegrationService), "*"),
-
-		NewService,
-
-		portsSet,
-		applicationSet,
-		sqliteAdaptersSet,
-		downloaderSet,
-		memoryPubsubSet,
-		sqlitePubsubSet,
-		loggingSet,
-		integrationAdaptersSet,
-		tweetGeneratorSet,
-	)
-	return IntegrationService{}, nil, nil
-}
-
 func BuildTestAdapters(context.Context, testing.TB) (sqlite.TestedItems, func(), error) {
 	wire.Build(
 		wire.Struct(new(sqlite.TestedItems), "*"),

@@ -31,7 +31,7 @@ Optional, defaults to `:8009` if empty.
 ### `CROSSPOSTING_ENVIRONMENT`
 
 Execution environment. Setting environment to `DEVELOPMENT`:
-- replaces an adapter which posts to Twitter with a mock adapter
+- replaces an adapter which posts to Twitter with a noop adapter
 
 Optional, can be set to `PRODUCTION` or `DEVELOPMENT`. Defaults to `PRODUCTION`.
 

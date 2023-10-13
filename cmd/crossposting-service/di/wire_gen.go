@@ -74,8 +74,8 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 	processReceivedEventHandler := app.NewProcessReceivedEventHandler(genericTransactionProvider, tweetGenerator, logger, prometheusPrometheus)
 	receivedEventSubscriber := memorypubsub.NewReceivedEventSubscriber(receivedEventPubSub, processReceivedEventHandler, logger)
 	twitterTwitter := twitter.NewTwitter(configConfig, logger, prometheusPrometheus)
-	twitterMock := twitter.NewTwitterMock(logger)
-	appTwitter := selectTwitterAdapterDependingOnConfig(configConfig, twitterTwitter, twitterMock)
+	noopTwitter := twitter.NewNoopTwitter(logger)
+	appTwitter := selectTwitterAdapterDependingOnConfig(configConfig, twitterTwitter, noopTwitter)
 	sendTweetHandler := app.NewSendTweetHandler(genericTransactionProvider, appTwitter, logger, prometheusPrometheus)
 	schemaAdapter := sqlite.NewWatermillSchemaAdapter()
 	offsetsAdapter := sqlite.NewWatermillOffsetsAdapter()
@@ -88,68 +88,6 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 	migrations := sqlite.NewMigrations(db, schemaAdapter, offsetsAdapter)
 	service := NewService(application, server, metricsServer, downloader, receivedEventSubscriber, tweetCreatedEventSubscriber, migrations)
 	return service, func() {
-		cleanup()
-	}, nil
-}
-
-func BuildIntegrationService(contextContext context.Context, configConfig config.Config) (IntegrationService, func(), error) {
-	logger, err := newLogger(configConfig)
-	if err != nil {
-		return IntegrationService{}, nil, err
-	}
-	db, cleanup, err := newSqliteDB(configConfig, logger)
-	if err != nil {
-		return IntegrationService{}, nil, err
-	}
-	watermillAdapter := logging.NewWatermillAdapter(logger)
-	diBuildTransactionSqliteAdaptersDependencies := buildTransactionSqliteAdaptersDependencies{
-		LoggerAdapter: watermillAdapter,
-	}
-	genericAdaptersFactoryFn := newAdaptersFactoryFn(diBuildTransactionSqliteAdaptersDependencies)
-	genericTransactionProvider := sqlite.NewTransactionProvider(db, genericAdaptersFactoryFn)
-	prometheusPrometheus, err := prometheus.NewPrometheus(logger)
-	if err != nil {
-		cleanup()
-		return IntegrationService{}, nil, err
-	}
-	getSessionAccountHandler := app.NewGetSessionAccountHandler(genericTransactionProvider, logger, prometheusPrometheus)
-	idGenerator := adapters.NewIDGenerator()
-	loginOrRegisterHandler := app.NewLoginOrRegisterHandler(genericTransactionProvider, idGenerator, idGenerator, logger, prometheusPrometheus)
-	linkPublicKeyHandler := app.NewLinkPublicKeyHandler(genericTransactionProvider, logger, prometheusPrometheus)
-	application := app.Application{
-		GetSessionAccount: getSessionAccountHandler,
-		LoginOrRegister:   loginOrRegisterHandler,
-		LinkPublicKey:     linkPublicKeyHandler,
-	}
-	server := http.NewServer(configConfig, application, logger)
-	metricsServer := http.NewMetricsServer(prometheusPrometheus, configConfig, logger)
-	receivedEventPubSub := pubsub.NewReceivedEventPubSub()
-	purplePages, err := adapters.NewPurplePages(contextContext, logger)
-	if err != nil {
-		cleanup()
-		return IntegrationService{}, nil, err
-	}
-	relayEventDownloader := adapters.NewRelayEventDownloader(contextContext, logger, prometheusPrometheus)
-	downloader := app.NewDownloader(genericTransactionProvider, receivedEventPubSub, logger, prometheusPrometheus, purplePages, relayEventDownloader)
-	tweetGenerator := domain.NewTweetGenerator()
-	processReceivedEventHandler := app.NewProcessReceivedEventHandler(genericTransactionProvider, tweetGenerator, logger, prometheusPrometheus)
-	receivedEventSubscriber := memorypubsub.NewReceivedEventSubscriber(receivedEventPubSub, processReceivedEventHandler, logger)
-	twitterMock := twitter.NewTwitterMock(logger)
-	sendTweetHandler := app.NewSendTweetHandler(genericTransactionProvider, twitterMock, logger, prometheusPrometheus)
-	schemaAdapter := sqlite.NewWatermillSchemaAdapter()
-	offsetsAdapter := sqlite.NewWatermillOffsetsAdapter()
-	subscriber, err := sqlite.NewWatermillSubscriber(db, watermillAdapter, schemaAdapter, offsetsAdapter)
-	if err != nil {
-		cleanup()
-		return IntegrationService{}, nil, err
-	}
-	tweetCreatedEventSubscriber := pubsub2.NewTweetCreatedEventSubscriber(sendTweetHandler, subscriber, logger)
-	migrations := sqlite.NewMigrations(db, schemaAdapter, offsetsAdapter)
-	service := NewService(application, server, metricsServer, downloader, receivedEventSubscriber, tweetCreatedEventSubscriber, migrations)
-	integrationService := IntegrationService{
-		Service: service,
-	}
-	return integrationService, func() {
 		cleanup()
 	}, nil
 }
@@ -264,10 +202,6 @@ func buildTestTransactionSqliteAdapters(db *sql.DB, tx *sql.Tx, diBuildTransacti
 }
 
 // wire.go:
-
-type IntegrationService struct {
-	Service Service
-}
 
 func newTestAdaptersConfig(tb testing.TB) (config.Config, error) {
 	return config.NewConfig(fixtures.SomeString(), fixtures.SomeString(), config.EnvironmentDevelopment, logging.LevelDebug, fixtures.SomeString(), fixtures.SomeString(), fixtures.SomeFile(tb))
