@@ -45,6 +45,7 @@ type PublicKeyRepository interface {
 	Save(linkedPublicKey *domain.LinkedPublicKey) error
 	List() ([]*domain.LinkedPublicKey, error)
 	ListByPublicKey(publicKey domain.PublicKey) ([]*domain.LinkedPublicKey, error)
+	ListByAccountID(accountID accounts.AccountID) ([]*domain.LinkedPublicKey, error)
 }
 
 type ProcessedEventRepository interface {
@@ -84,9 +85,11 @@ type Adapters struct {
 }
 
 type Application struct {
-	GetSessionAccount *GetSessionAccountHandler
-	LoginOrRegister   *LoginOrRegisterHandler
-	LinkPublicKey     *LinkPublicKeyHandler
+	GetSessionAccount    *GetSessionAccountHandler
+	GetAccountPublicKeys *GetAccountPublicKeysHandler
+
+	LoginOrRegister *LoginOrRegisterHandler
+	LinkPublicKey   *LinkPublicKeyHandler
 }
 
 type ReceivedEvent struct {

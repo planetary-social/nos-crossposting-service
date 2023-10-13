@@ -63,6 +63,21 @@ WHERE public_key = $1`,
 	return m.readPublicKeys(rows)
 }
 
+func (m *PublicKeyRepository) ListByAccountID(accountID accounts.AccountID) ([]*domain.LinkedPublicKey, error) {
+	rows, err := m.tx.Query(`
+SELECT account_id, public_key, created_at
+FROM public_keys
+WHERE account_id = $1`,
+		accountID.String(),
+	)
+	if err != nil {
+		return nil, errors.Wrap(err, "query error")
+	}
+	defer rows.Close()
+
+	return m.readPublicKeys(rows)
+}
+
 func (m *PublicKeyRepository) readPublicKeys(rows *sql.Rows) ([]*domain.LinkedPublicKey, error) {
 	var results []*domain.LinkedPublicKey
 	for rows.Next() {

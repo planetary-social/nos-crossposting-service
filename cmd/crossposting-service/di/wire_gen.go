@@ -52,13 +52,15 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 		return Service{}, nil, err
 	}
 	getSessionAccountHandler := app.NewGetSessionAccountHandler(genericTransactionProvider, logger, prometheusPrometheus)
+	getAccountPublicKeysHandler := app.NewGetAccountPublicKeysHandler(genericTransactionProvider, logger, prometheusPrometheus)
 	idGenerator := adapters.NewIDGenerator()
 	loginOrRegisterHandler := app.NewLoginOrRegisterHandler(genericTransactionProvider, idGenerator, idGenerator, logger, prometheusPrometheus)
 	linkPublicKeyHandler := app.NewLinkPublicKeyHandler(genericTransactionProvider, logger, prometheusPrometheus)
 	application := app.Application{
-		GetSessionAccount: getSessionAccountHandler,
-		LoginOrRegister:   loginOrRegisterHandler,
-		LinkPublicKey:     linkPublicKeyHandler,
+		GetSessionAccount:    getSessionAccountHandler,
+		GetAccountPublicKeys: getAccountPublicKeysHandler,
+		LoginOrRegister:      loginOrRegisterHandler,
+		LinkPublicKey:        linkPublicKeyHandler,
 	}
 	frontendFileSystem, err := frontend.NewFrontendFileSystem()
 	if err != nil {

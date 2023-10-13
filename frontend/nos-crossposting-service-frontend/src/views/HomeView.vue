@@ -11,6 +11,22 @@
 
     <div v-if="!loading && user">
       <CurrentUser :user="user"/>
+
+      <div v-if="!publicKeys">
+        Loading public keys...
+      </div>
+
+      <div v-if="publicKeys">
+        <ul v-if="publicKeys.publicKeys?.length > 0">
+          <li v-for="publicKey in publicKeys.publicKeys" :key="publicKey.npub">
+            {{ publicKey.npub }}
+          </li>
+        </ul>
+
+        <p v-if="publicKeys.publicKeys?.length == 0">
+          You haven't added any public keys yet.
+        </p>
+      </div>
     </div>
 
   </div>
@@ -23,6 +39,8 @@ import Explanation from '@/components/Explanation.vue';
 import LogInWithTwitterButton from "@/components/LogInWithTwitterButton.vue";
 import {User} from "@/dto/User";
 import CurrentUser from "@/components/CurrentUser.vue";
+import {APIService} from "@/services/APIService";
+import {PublicKeys} from "@/dto/PublicKeys";
 
 
 @Options({
@@ -34,7 +52,10 @@ import CurrentUser from "@/components/CurrentUser.vue";
 })
 export default class HomeView extends Vue {
 
+  private readonly apiService = new APIService(useStore());
   private readonly store = useStore();
+
+  publicKeys: PublicKeys | null = null;
 
   get loading(): boolean {
     return this.store.state.user === undefined;
@@ -42,6 +63,13 @@ export default class HomeView extends Vue {
 
   get user(): User {
     return this.store.state.user;
+  }
+
+  created() {
+    this.apiService.publicKeys()
+        .then(response => {
+          this.publicKeys = response.data;
+        })
   }
 }
 </script>

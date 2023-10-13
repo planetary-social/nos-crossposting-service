@@ -1,6 +1,7 @@
 import axios, {AxiosResponse} from 'axios';
 import {CurrentUser} from "@/dto/CurrentUser";
 import {Mutation} from '@/store';
+import {PublicKeys} from "@/dto/PublicKeys";
 
 export class APIService {
 
@@ -12,6 +13,11 @@ export class APIService {
     currentUser(): Promise<AxiosResponse<CurrentUser>> {
         const url = `/api/current-user`;
         return this.axios.get<CurrentUser>(url);
+    }
+
+    publicKeys(): Promise<AxiosResponse<PublicKeys>> {
+        const url = `/api/public-keys`;
+        return this.axios.get<PublicKeys>(url);
     }
 
     refreshCurrentUser(): Promise<CurrentUser> {

@@ -109,4 +109,14 @@ func TestPublicKeyRepository_ListByPublicKeyReturnsOnlyRelevantData(t *testing.T
 		return nil
 	})
 	require.NoError(t, err)
+
+	err = adapters.TransactionProvider.Transact(ctx, func(ctx context.Context, adapters sqlite.TestAdapters) error {
+		results, err := adapters.PublicKeyRepository.ListByAccountID(accountID)
+		require.NoError(t, err)
+
+		require.Len(t, results, 2)
+
+		return nil
+	})
+	require.NoError(t, err)
 }

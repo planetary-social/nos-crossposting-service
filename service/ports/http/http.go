@@ -81,6 +81,7 @@ func (s *Server) createMux() *http.ServeMux {
 	mux.HandleFunc("/link-public-key", s.serveLinkPublicKey)
 	mux.Handle("/login", twitter.LoginHandler(config, nil))
 	mux.HandleFunc("/api/current-user", rest.Wrap(s.apiCurrentUser))
+	mux.HandleFunc("/api/public-keys", rest.Wrap(s.apiPublicKeys))
 	mux.Handle(loginCallbackPath, twitter.CallbackHandler(config, s.issueSession(), nil))
 
 	return mux
@@ -205,6 +206,33 @@ func (s *Server) apiCurrentUser(r *http.Request) rest.RestResponse {
 	)
 }
 
+func (s *Server) apiPublicKeys(r *http.Request) rest.RestResponse {
+	ctx := r.Context()
+
+	account, err := s.getAccountFromRequest(r)
+	if err != nil {
+		s.logger.Error().WithError(err).Message("error getting account from request")
+		return rest.ErrInternalServerError
+	}
+
+	if account == nil {
+		return rest.ErrUnauthorized
+	}
+
+	linkedPublicKeys, err := s.app.GetAccountPublicKeys.Handle(ctx, app.NewGetAccountPublicKeys(account.AccountID()))
+	if err != nil {
+		s.logger.Error().WithError(err).Message("error getting public keys")
+		return rest.ErrInternalServerError
+	}
+
+	return rest.NewResponse(
+		publicKeysResponse{
+			PublicKeys: newTransportPublicKeys(linkedPublicKeys),
+		},
+	)
+
+}
+
 func (s *Server) getAccountFromRequest(r *http.Request) (*accounts.Account, error) {
 	sessionID, err := GetSessionIDFromCookie(r)
 	if err != nil {
@@ -231,6 +259,10 @@ type currentUserResponse struct {
 	User *transportUser `json:"user"`
 }
 
+type publicKeysResponse struct {
+	PublicKeys []transportPublicKey `json:"publicKeys"`
+}
+
 type transportUser struct {
 	AccountID string `json:"accountID"`
 	TwitterID int64  `json:"twitterID"`
@@ -241,4 +273,20 @@ func newTransportUser(account accounts.Account) transportUser {
 		AccountID: account.AccountID().String(),
 		TwitterID: account.TwitterID().Int64(),
 	}
+}
+
+type transportPublicKey struct {
+	Npub string `json:"npub"`
+}
+
+func newTransportPublicKey(linkedPublicKey *domain.LinkedPublicKey) transportPublicKey {
+	return transportPublicKey{Npub: linkedPublicKey.PublicKey().Npub()}
+}
+
+func newTransportPublicKeys(linkedPublicKeys []*domain.LinkedPublicKey) []transportPublicKey {
+	result := make([]transportPublicKey, 0) // render empty slice as "[]" not "null"
+	for _, v := range linkedPublicKeys {
+		result = append(result, newTransportPublicKey(v))
+	}
+	return result
 }

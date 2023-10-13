@@ -17,6 +17,7 @@ var applicationSet = wire.NewSet(
 	wire.Bind(new(sqlitepubsub.SendTweetHandler), new(*app.SendTweetHandler)),
 
 	app.NewGetSessionAccountHandler,
+	app.NewGetAccountPublicKeysHandler,
 	app.NewLoginOrRegisterHandler,
 	app.NewLinkPublicKeyHandler,
 )
