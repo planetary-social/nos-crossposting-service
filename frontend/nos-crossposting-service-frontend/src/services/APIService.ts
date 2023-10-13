@@ -2,6 +2,7 @@ import axios, {AxiosResponse} from 'axios';
 import {CurrentUser} from "@/dto/CurrentUser";
 import {Mutation} from '@/store';
 import {PublicKeys} from "@/dto/PublicKeys";
+import {AddPublicKeyRequest} from "@/dto/AddPublicKeyRequest";
 
 export class APIService {
 
@@ -18,6 +19,11 @@ export class APIService {
     publicKeys(): Promise<AxiosResponse<PublicKeys>> {
         const url = `/api/public-keys`;
         return this.axios.get<PublicKeys>(url);
+    }
+
+    addPublicKey(req: AddPublicKeyRequest): Promise<AxiosResponse<void>> {
+        const url = `/api/public-keys`;
+        return this.axios.post<void>(url, req);
     }
 
     refreshCurrentUser(): Promise<CurrentUser> {

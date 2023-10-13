@@ -29,6 +29,9 @@
       </div>
     </div>
 
+    <input placeholder="npub..." v-model="npub">
+    <button @click="addPublicKey">Link public key</button>
+
   </div>
 </template>
 
@@ -41,6 +44,7 @@ import {User} from "@/dto/User";
 import CurrentUser from "@/components/CurrentUser.vue";
 import {APIService} from "@/services/APIService";
 import {PublicKeys} from "@/dto/PublicKeys";
+import {AddPublicKeyRequest} from "@/dto/AddPublicKeyRequest";
 
 
 @Options({
@@ -56,6 +60,7 @@ export default class HomeView extends Vue {
   private readonly store = useStore();
 
   publicKeys: PublicKeys | null = null;
+  npub = "";
 
   get loading(): boolean {
     return this.store.state.user === undefined;
@@ -69,6 +74,16 @@ export default class HomeView extends Vue {
     this.apiService.publicKeys()
         .then(response => {
           this.publicKeys = response.data;
+        })
+  }
+
+  addPublicKey(): void {
+    this.apiService.addPublicKey(new AddPublicKeyRequest(this.npub))
+        .then(resp => {
+          console.log("added");
+        })
+        .catch(error => {
+          console.log("error");
         })
   }
 }

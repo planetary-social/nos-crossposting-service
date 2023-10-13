@@ -2,6 +2,7 @@ package http
 
 import (
 	"context"
+	"encoding/json"
 	"net"
 	"net/http"
 	"strings"
@@ -78,7 +79,6 @@ func (s *Server) createMux() *http.ServeMux {
 
 	mux := http.NewServeMux()
 	mux.Handle("/", http.FileServer(s.frontendFileSystem))
-	mux.HandleFunc("/link-public-key", s.serveLinkPublicKey)
 	mux.Handle("/login", twitter.LoginHandler(config, nil))
 	mux.HandleFunc("/api/current-user", rest.Wrap(s.apiCurrentUser))
 	mux.HandleFunc("/api/public-keys", rest.Wrap(s.apiPublicKeys))
@@ -90,43 +90,6 @@ func (s *Server) createMux() *http.ServeMux {
 func (s *Server) twitterLoginCallbackURL() string {
 	base := strings.TrimRight(s.conf.PublicFacingAddress(), "/")
 	return base + loginCallbackPath
-}
-
-func (s *Server) serveLinkPublicKey(w http.ResponseWriter, r *http.Request) {
-	account, err := s.getAccountFromRequest(r)
-	if err != nil {
-		s.renderError(w, err)
-		return
-	}
-
-	if account == nil {
-		s.renderError(w, errors.New("you are not logged in"))
-		return
-	}
-
-	npub := r.FormValue("npub")
-
-	publicKey, err := domain.NewPublicKeyFromNpub(npub)
-	if err != nil {
-		s.renderError(w, errors.Wrap(err, "invalid npub"))
-		return
-	}
-
-	cmd := app.NewLinkPublicKey(account.AccountID(), publicKey)
-
-	err = s.app.LinkPublicKey.Handle(r.Context(), cmd)
-	if err != nil {
-		s.renderError(w, errors.Wrap(err, "handler error"))
-		return
-	}
-
-	http.Redirect(w, r, "/", http.StatusFound)
-}
-
-func (s *Server) renderError(w http.ResponseWriter, err error) {
-	// todo
-	w.WriteHeader(http.StatusInternalServerError)
-	_, _ = w.Write([]byte("error"))
 }
 
 func (s *Server) issueSession() http.Handler {
@@ -207,6 +170,17 @@ func (s *Server) apiCurrentUser(r *http.Request) rest.RestResponse {
 }
 
 func (s *Server) apiPublicKeys(r *http.Request) rest.RestResponse {
+	switch r.Method {
+	case http.MethodGet:
+		return s.apiPublicKeysList(r)
+	case http.MethodPost:
+		return s.apiPublicKeysAdd(r)
+	default:
+		return rest.ErrMethodNotAllowed
+	}
+}
+
+func (s *Server) apiPublicKeysList(r *http.Request) rest.RestResponse {
 	ctx := r.Context()
 
 	account, err := s.getAccountFromRequest(r)
@@ -226,11 +200,43 @@ func (s *Server) apiPublicKeys(r *http.Request) rest.RestResponse {
 	}
 
 	return rest.NewResponse(
-		publicKeysResponse{
+		publicKeysListResponse{
 			PublicKeys: newTransportPublicKeys(linkedPublicKeys),
 		},
 	)
+}
 
+func (s *Server) apiPublicKeysAdd(r *http.Request) rest.RestResponse {
+	ctx := r.Context()
+
+	account, err := s.getAccountFromRequest(r)
+	if err != nil {
+		s.logger.Error().WithError(err).Message("error getting account from request")
+		return rest.ErrInternalServerError
+	}
+
+	if account == nil {
+		return rest.ErrUnauthorized
+	}
+
+	var t publicKeysAddRequest
+	if err := json.NewDecoder(r.Body).Decode(&t); err != nil {
+		return rest.ErrBadRequest
+	}
+
+	publicKey, err := domain.NewPublicKeyFromNpub(t.Npub)
+	if err != nil {
+		return rest.ErrBadRequest
+	}
+
+	cmd := app.NewLinkPublicKey(account.AccountID(), publicKey)
+
+	if err := s.app.LinkPublicKey.Handle(ctx, cmd); err != nil {
+		s.logger.Error().WithError(err).Message("error adding a public key")
+		return rest.ErrInternalServerError
+	}
+
+	return rest.NewResponse(nil)
 }
 
 func (s *Server) getAccountFromRequest(r *http.Request) (*accounts.Account, error) {
@@ -259,8 +265,12 @@ type currentUserResponse struct {
 	User *transportUser `json:"user"`
 }
 
-type publicKeysResponse struct {
+type publicKeysListResponse struct {
 	PublicKeys []transportPublicKey `json:"publicKeys"`
+}
+
+type publicKeysAddRequest struct {
+	Npub string `json:"npub"`
 }
 
 type transportUser struct {
