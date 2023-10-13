@@ -2,23 +2,23 @@ package di
 
 import (
 	"github.com/google/wire"
-	"github.com/planetary-social/nos-crossposting-service/service/adapters/pubsub"
+	"github.com/planetary-social/nos-crossposting-service/service/adapters/memorypubsub"
 	"github.com/planetary-social/nos-crossposting-service/service/adapters/sqlite"
 	"github.com/planetary-social/nos-crossposting-service/service/app"
-	pubsubport "github.com/planetary-social/nos-crossposting-service/service/ports/pubsub"
+	sqlitepubsubport "github.com/planetary-social/nos-crossposting-service/service/ports/sqlitepubsub"
 )
 
 var memoryPubsubSet = wire.NewSet(
-	pubsub.NewReceivedEventPubSub,
-	wire.Bind(new(app.ReceivedEventPublisher), new(*pubsub.ReceivedEventPubSub)),
-	wire.Bind(new(app.ReceivedEventSubscriber), new(*pubsub.ReceivedEventPubSub)),
+	memorypubsub.NewReceivedEventPubSub,
+	wire.Bind(new(app.ReceivedEventPublisher), new(*memorypubsub.ReceivedEventPubSub)),
+	wire.Bind(new(app.ReceivedEventSubscriber), new(*memorypubsub.ReceivedEventPubSub)),
 )
 
 var sqlitePubsubSet = wire.NewSet(
 	sqlite.NewWatermillSchemaAdapter,
 	sqlite.NewWatermillOffsetsAdapter,
 	sqlite.NewWatermillSubscriber,
-	pubsubport.NewTweetCreatedEventSubscriber,
+	sqlitepubsubport.NewTweetCreatedEventSubscriber,
 )
 
 var sqliteTxPubsubSet = wire.NewSet(

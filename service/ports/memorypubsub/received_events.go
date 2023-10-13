@@ -5,7 +5,7 @@ import (
 	"context"
 
 	"github.com/planetary-social/nos-crossposting-service/internal/logging"
-	"github.com/planetary-social/nos-crossposting-service/service/adapters/pubsub"
+	"github.com/planetary-social/nos-crossposting-service/service/adapters/memorypubsub"
 	"github.com/planetary-social/nos-crossposting-service/service/app"
 )
 
@@ -14,13 +14,13 @@ type SaveReceivedEventHandler interface {
 }
 
 type ReceivedEventSubscriber struct {
-	pubsub  *pubsub.ReceivedEventPubSub
+	pubsub  *memorypubsub.ReceivedEventPubSub
 	handler SaveReceivedEventHandler
 	logger  logging.Logger
 }
 
 func NewReceivedEventSubscriber(
-	pubsub *pubsub.ReceivedEventPubSub,
+	pubsub *memorypubsub.ReceivedEventPubSub,
 	handler SaveReceivedEventHandler,
 	logger logging.Logger,
 ) *ReceivedEventSubscriber {

@@ -16,16 +16,16 @@ import (
 	"github.com/planetary-social/nos-crossposting-service/internal/fixtures"
 	"github.com/planetary-social/nos-crossposting-service/internal/logging"
 	"github.com/planetary-social/nos-crossposting-service/service/adapters"
+	"github.com/planetary-social/nos-crossposting-service/service/adapters/memorypubsub"
 	"github.com/planetary-social/nos-crossposting-service/service/adapters/prometheus"
-	"github.com/planetary-social/nos-crossposting-service/service/adapters/pubsub"
 	"github.com/planetary-social/nos-crossposting-service/service/adapters/sqlite"
 	"github.com/planetary-social/nos-crossposting-service/service/adapters/twitter"
 	"github.com/planetary-social/nos-crossposting-service/service/app"
 	"github.com/planetary-social/nos-crossposting-service/service/config"
 	"github.com/planetary-social/nos-crossposting-service/service/domain"
 	"github.com/planetary-social/nos-crossposting-service/service/ports/http"
-	"github.com/planetary-social/nos-crossposting-service/service/ports/memorypubsub"
-	pubsub2 "github.com/planetary-social/nos-crossposting-service/service/ports/pubsub"
+	memorypubsub2 "github.com/planetary-social/nos-crossposting-service/service/ports/memorypubsub"
+	"github.com/planetary-social/nos-crossposting-service/service/ports/sqlitepubsub"
 )
 
 // Injectors from wire.go:
@@ -61,7 +61,7 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 	}
 	server := http.NewServer(configConfig, application, logger)
 	metricsServer := http.NewMetricsServer(prometheusPrometheus, configConfig, logger)
-	receivedEventPubSub := pubsub.NewReceivedEventPubSub()
+	receivedEventPubSub := memorypubsub.NewReceivedEventPubSub()
 	purplePages, err := adapters.NewPurplePages(contextContext, logger)
 	if err != nil {
 		cleanup()
@@ -72,7 +72,7 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 	downloader := app.NewDownloader(genericTransactionProvider, receivedEventPubSub, logger, prometheusPrometheus, relaySource, relayEventDownloader)
 	tweetGenerator := domain.NewTweetGenerator()
 	processReceivedEventHandler := app.NewProcessReceivedEventHandler(genericTransactionProvider, tweetGenerator, logger, prometheusPrometheus)
-	receivedEventSubscriber := memorypubsub.NewReceivedEventSubscriber(receivedEventPubSub, processReceivedEventHandler, logger)
+	receivedEventSubscriber := memorypubsub2.NewReceivedEventSubscriber(receivedEventPubSub, processReceivedEventHandler, logger)
 	twitterTwitter := twitter.NewTwitter(configConfig, logger, prometheusPrometheus)
 	noopTwitter := twitter.NewNoopTwitter(logger)
 	appTwitter := selectTwitterAdapterDependingOnConfig(configConfig, twitterTwitter, noopTwitter)
@@ -84,7 +84,7 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 		cleanup()
 		return Service{}, nil, err
 	}
-	tweetCreatedEventSubscriber := pubsub2.NewTweetCreatedEventSubscriber(sendTweetHandler, subscriber, logger)
+	tweetCreatedEventSubscriber := sqlitepubsub.NewTweetCreatedEventSubscriber(sendTweetHandler, subscriber, logger)
 	migrations := sqlite.NewMigrations(db, schemaAdapter, offsetsAdapter)
 	service := NewService(application, server, metricsServer, downloader, receivedEventSubscriber, tweetCreatedEventSubscriber, migrations)
 	return service, func() {
