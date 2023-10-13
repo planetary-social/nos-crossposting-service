@@ -9,15 +9,17 @@ import (
 	"github.com/planetary-social/nos-crossposting-service/service/app"
 	"github.com/planetary-social/nos-crossposting-service/service/ports/http"
 	"github.com/planetary-social/nos-crossposting-service/service/ports/memorypubsub"
+	"github.com/planetary-social/nos-crossposting-service/service/ports/pubsub"
 )
 
 type Service struct {
-	app                     app.Application
-	server                  http.Server
-	metricsServer           http.MetricsServer
-	downloader              *app.Downloader
-	receivedEventSubscriber *memorypubsub.ReceivedEventSubscriber
-	migrations              *sqlite.Migrations
+	app                         app.Application
+	server                      http.Server
+	metricsServer               http.MetricsServer
+	downloader                  *app.Downloader
+	receivedEventSubscriber     *memorypubsub.ReceivedEventSubscriber
+	tweetCreatedEventSubscriber *pubsub.TweetCreatedEventSubscriber
+	migrations                  *sqlite.Migrations
 }
 
 func NewService(
@@ -26,15 +28,17 @@ func NewService(
 	metricsServer http.MetricsServer,
 	downloader *app.Downloader,
 	receivedEventSubscriber *memorypubsub.ReceivedEventSubscriber,
+	tweetCreatedEventSubscriber *pubsub.TweetCreatedEventSubscriber,
 	migrations *sqlite.Migrations,
 ) Service {
 	return Service{
-		app:                     app,
-		server:                  server,
-		metricsServer:           metricsServer,
-		downloader:              downloader,
-		receivedEventSubscriber: receivedEventSubscriber,
-		migrations:              migrations,
+		app:                         app,
+		server:                      server,
+		metricsServer:               metricsServer,
+		downloader:                  downloader,
+		receivedEventSubscriber:     receivedEventSubscriber,
+		tweetCreatedEventSubscriber: tweetCreatedEventSubscriber,
+		migrations:                  migrations,
 	}
 }
 
@@ -71,6 +75,11 @@ func (s Service) Run(ctx context.Context) error {
 	runners++
 	go func() {
 		errCh <- errors.Wrap(s.receivedEventSubscriber.Run(ctx), "received event subscriber error")
+	}()
+
+	runners++
+	go func() {
+		errCh <- errors.Wrap(s.tweetCreatedEventSubscriber.Run(ctx), "tweet created event subscriber error")
 	}()
 
 	var err error

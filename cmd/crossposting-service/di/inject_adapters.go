@@ -9,6 +9,7 @@ import (
 	"github.com/planetary-social/nos-crossposting-service/service/adapters"
 	"github.com/planetary-social/nos-crossposting-service/service/adapters/prometheus"
 	"github.com/planetary-social/nos-crossposting-service/service/adapters/sqlite"
+	"github.com/planetary-social/nos-crossposting-service/service/adapters/twitter"
 	"github.com/planetary-social/nos-crossposting-service/service/app"
 	"github.com/planetary-social/nos-crossposting-service/service/config"
 )
@@ -50,6 +51,9 @@ var sqliteTxAdaptersSet = wire.NewSet(
 
 	sqlite.NewProcessedEventRepository,
 	wire.Bind(new(app.ProcessedEventRepository), new(*sqlite.ProcessedEventRepository)),
+
+	sqlite.NewUserTokensRepository,
+	wire.Bind(new(app.UserTokensRepository), new(*sqlite.UserTokensRepository)),
 )
 
 var adaptersSet = wire.NewSet(
@@ -66,6 +70,9 @@ var adaptersSet = wire.NewSet(
 
 	adapters.NewRelayEventDownloader,
 	wire.Bind(new(app.RelayEventDownloader), new(*adapters.RelayEventDownloader)),
+
+	twitter.NewTwitter,
+	wire.Bind(new(app.Twitter), new(*twitter.Twitter)),
 )
 
 var integrationAdaptersSet = wire.NewSet(
@@ -81,6 +88,9 @@ var integrationAdaptersSet = wire.NewSet(
 
 	adapters.NewRelayEventDownloader,
 	wire.Bind(new(app.RelayEventDownloader), new(*adapters.RelayEventDownloader)),
+
+	twitter.NewTwitterMock,
+	wire.Bind(new(app.Twitter), new(*twitter.TwitterMock)),
 )
 
 func newAdaptersFactoryFn(deps buildTransactionSqliteAdaptersDependencies) sqlite.AdaptersFactoryFn {
