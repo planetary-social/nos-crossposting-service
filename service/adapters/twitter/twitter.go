@@ -8,20 +8,27 @@ import (
 	"github.com/g8rswimmer/go-twitter/v2"
 	oauth1 "github.com/klaidas/go-oauth1"
 	"github.com/planetary-social/nos-crossposting-service/internal/logging"
+	"github.com/planetary-social/nos-crossposting-service/service/app"
 	"github.com/planetary-social/nos-crossposting-service/service/config"
 	"github.com/planetary-social/nos-crossposting-service/service/domain"
 	"github.com/planetary-social/nos-crossposting-service/service/domain/accounts"
 )
 
 type Twitter struct {
-	config config.Config
-	logger logging.Logger
+	config  config.Config
+	logger  logging.Logger
+	metrics app.Metrics
 }
 
-func NewTwitter(config config.Config, logger logging.Logger) *Twitter {
+func NewTwitter(
+	config config.Config,
+	logger logging.Logger,
+	metrics app.Metrics,
+) *Twitter {
 	return &Twitter{
-		config: config,
-		logger: logger.New("twitter"),
+		config:  config,
+		logger:  logger.New("twitter"),
+		metrics: metrics,
 	}
 }
 
@@ -47,6 +54,7 @@ func (t *Twitter) PostTweet(
 	response, err := client.CreateTweet(ctx, twitter.CreateTweetRequest{
 		Text: tweet.Text(),
 	})
+	t.metrics.ReportCallingTwitterAPIToPostATweet(err)
 	if err != nil {
 		var errorResponse *twitter.ErrorResponse
 		if errors.As(err, &errorResponse) {

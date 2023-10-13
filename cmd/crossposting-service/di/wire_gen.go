@@ -73,7 +73,7 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 	tweetGenerator := domain.NewTweetGenerator()
 	processReceivedEventHandler := app.NewProcessReceivedEventHandler(genericTransactionProvider, tweetGenerator, logger, prometheusPrometheus)
 	receivedEventSubscriber := memorypubsub.NewReceivedEventSubscriber(receivedEventPubSub, processReceivedEventHandler, logger)
-	twitterTwitter := twitter.NewTwitter(configConfig, logger)
+	twitterTwitter := twitter.NewTwitter(configConfig, logger, prometheusPrometheus)
 	sendTweetHandler := app.NewSendTweetHandler(genericTransactionProvider, twitterTwitter, logger, prometheusPrometheus)
 	schemaAdapter := sqlite.NewWatermillSchemaAdapter()
 	offsetsAdapter := sqlite.NewWatermillOffsetsAdapter()
