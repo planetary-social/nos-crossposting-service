@@ -1,6 +1,7 @@
 <template>
   <h1>
     Nos crossposting service
+    {{ user }}
   </h1>
   <router-view/>
 </template>
@@ -27,3 +28,23 @@ nav {
   }
 }
 </style>
+
+<script lang="ts">
+import {Options, Vue} from 'vue-class-component';
+import {useStore} from "vuex";
+import {APIService} from "@/services/APIService";
+
+@Options({})
+export default class App extends Vue {
+
+  private readonly apiService = new APIService(useStore());
+
+  created() {
+    this.loadCurrentUser();
+  }
+
+  private loadCurrentUser(): void {
+    this.apiService.refreshCurrentUser()
+  }
+}
+</script>

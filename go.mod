@@ -6,6 +6,7 @@ require (
 	github.com/ThreeDotsLabs/watermill v1.3.1
 	github.com/ThreeDotsLabs/watermill-sql/v2 v2.0.0
 	github.com/boreq/errors v0.1.0
+	github.com/boreq/rest v0.1.0
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.0.1
 	github.com/dghubble/gologin/v2 v2.4.0
 	github.com/dghubble/oauth1 v0.7.2
