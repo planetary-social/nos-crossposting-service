@@ -20,6 +20,7 @@ const (
 	envTwitterKey           = "TWITTER_KEY"
 	envTwitterKeySecret     = "TWITTER_KEY_SECRET"
 	envDatabasePath         = "DATABASE_PATH"
+	envPublicFacingAddress  = "PUBLIC_FACING_ADDRESS"
 )
 
 type EnvironmentConfigLoader struct {
@@ -48,6 +49,7 @@ func (c *EnvironmentConfigLoader) Load() (config.Config, error) {
 		c.getenv(envTwitterKey),
 		c.getenv(envTwitterKeySecret),
 		c.getenv(envDatabasePath),
+		c.getenv(envPublicFacingAddress),
 	)
 }
 

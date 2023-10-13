@@ -210,7 +210,7 @@ func buildTestTransactionSqliteAdapters(db *sql.DB, tx *sql.Tx, diBuildTransacti
 // wire.go:
 
 func newTestAdaptersConfig(tb testing.TB) (config.Config, error) {
-	return config.NewConfig(fixtures.SomeString(), fixtures.SomeString(), config.EnvironmentDevelopment, logging.LevelDebug, fixtures.SomeString(), fixtures.SomeString(), fixtures.SomeFile(tb))
+	return config.NewConfig(fixtures.SomeString(), fixtures.SomeString(), config.EnvironmentDevelopment, logging.LevelDebug, fixtures.SomeString(), fixtures.SomeString(), fixtures.SomeFile(tb), fixtures.SomeString())
 }
 
 type buildTransactionSqliteAdaptersDependencies struct {

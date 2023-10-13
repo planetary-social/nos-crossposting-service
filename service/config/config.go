@@ -27,6 +27,8 @@ type Config struct {
 	twitterKeySecret string
 
 	databasePath string
+
+	publicFacingAddress string
 }
 
 func NewConfig(
@@ -37,6 +39,7 @@ func NewConfig(
 	twitterKey string,
 	twitterKeySecret string,
 	databasePath string,
+	publicFacingAddress string,
 ) (Config, error) {
 	c := Config{
 		listenAddress:        listenAddress,
@@ -46,6 +49,7 @@ func NewConfig(
 		twitterKey:           twitterKey,
 		twitterKeySecret:     twitterKeySecret,
 		databasePath:         databasePath,
+		publicFacingAddress:  publicFacingAddress,
 	}
 
 	c.setDefaults()
@@ -84,6 +88,10 @@ func (c *Config) DatabasePath() string {
 	return c.databasePath
 }
 
+func (c *Config) PublicFacingAddress() string {
+	return c.publicFacingAddress
+}
+
 func (c *Config) setDefaults() {
 	if c.listenAddress == "" {
 		c.listenAddress = ":8008"
@@ -120,6 +128,10 @@ func (c *Config) validate() error {
 
 	if c.databasePath == "" {
 		return errors.New("missing database path")
+	}
+
+	if c.publicFacingAddress == "" {
+		return errors.New("missing public facing address")
 	}
 
 	return nil

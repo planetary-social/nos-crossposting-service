@@ -54,11 +54,17 @@ Twitter API consumer key secret.
 
 Required.
 
-### `DATABASE_PATH`
+### `CROSSPOSTING_DATABASE_PATH`
 
 Full path to the database file.
 
 Required, e.g. `/some/directory/database.sqlite`.
+
+### `CROSSPOSTING_PUBLIC_FACING_ADDRESS`
+
+Public facing address of the service, required for Twitter callbacks.
+
+Required, e.g. `http://localhost:8008/` or `https://example.com/`.
 
 ## Metrics
 
@@ -89,6 +95,11 @@ You may not be able to build it using older compilers.
 
 See ["How to get access to the Twitter API"][get-twitter-api-keys].
 
+##### User authentication set up
+
+You need to set `http://localhost:8008/login-callback` as "Callback URI". In
+production this has to be adjusted accordingly.
+
 #### Run the service
 
 Run the following command changing appropriate environment variables:
@@ -98,6 +109,7 @@ CROSSPOSTING_TWITTER_KEY=xxx \
 CROSSPOSTING_TWITTER_KEY_SECRET=xxx \
 CROSSPOSTING_DATABASE_PATH=/path/to/database.sqlite \
 CROSSPOSTING_ENVIRONMENT=DEVELOPMENT \
+CROSSPOSTING_PUBLIC_FACING_ADDRESS=http://localhost:8008/
 go run ./cmd/crossposting-service
 ```
 

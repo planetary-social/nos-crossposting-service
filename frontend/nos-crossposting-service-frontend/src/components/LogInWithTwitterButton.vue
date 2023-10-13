@@ -1,6 +1,6 @@
 <template>
   <div class="log-in-with-twitter-button">
-    Log in with Twitter.
+    <a href="/login">Log in with Twitter.</a>
   </div>
 </template>
 
