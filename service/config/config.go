@@ -111,11 +111,11 @@ func (c *Config) validate() error {
 	}
 
 	if c.twitterKey == "" {
-		return errors.New("missing twitter key")
+		return errors.New("missing twitter consumer key")
 	}
 
 	if c.twitterKeySecret == "" {
-		return errors.New("missing twitter key secret")
+		return errors.New("missing twitter consumer key secret")
 	}
 
 	if c.databasePath == "" {

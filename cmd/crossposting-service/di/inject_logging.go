@@ -16,13 +16,13 @@ var loggingSet = wire.NewSet(
 	wire.Bind(new(watermill.LoggerAdapter), new(*logging.WatermillAdapter)),
 )
 
-func newLogger(config config.Config) (logging.Logger, error) {
-	if config.LogLevel() == logging.LevelDisabled {
+func newLogger(conf config.Config) (logging.Logger, error) {
+	if conf.LogLevel() == logging.LevelDisabled {
 		return logging.NewDevNullLogger(), nil
 	}
 
 	v := logrus.New()
-	switch config.LogLevel() {
+	switch conf.LogLevel() {
 	case logging.LevelTrace:
 		v.SetLevel(logrus.TraceLevel)
 	case logging.LevelDebug:

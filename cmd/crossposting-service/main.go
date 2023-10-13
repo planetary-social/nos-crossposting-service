@@ -20,12 +20,12 @@ func main() {
 func run() error {
 	ctx := context.Background()
 
-	cfg, err := configadapters.NewEnvironmentConfigLoader().Load()
+	conf, err := configadapters.NewEnvironmentConfigLoader().Load()
 	if err != nil {
 		return errors.Wrap(err, "error creating a config")
 	}
 
-	service, cleanup, err := di.BuildService(ctx, cfg)
+	service, cleanup, err := di.BuildService(ctx, conf)
 	if err != nil {
 		return errors.Wrap(err, "error building a service")
 	}

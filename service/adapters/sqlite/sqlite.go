@@ -25,8 +25,8 @@ type TestedItems struct {
 	Migrations          *Migrations
 }
 
-func Open(config config.Config) (*sql.DB, error) {
-	db, err := sql.Open("sqlite3", config.DatabasePath())
+func Open(conf config.Config) (*sql.DB, error) {
+	db, err := sql.Open("sqlite3", conf.DatabasePath())
 	if err != nil {
 		return nil, errors.Wrap(err, "error opening the database")
 	}

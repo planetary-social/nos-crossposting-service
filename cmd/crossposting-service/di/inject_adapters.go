@@ -72,7 +72,8 @@ var adaptersSet = wire.NewSet(
 	wire.Bind(new(app.RelayEventDownloader), new(*adapters.RelayEventDownloader)),
 
 	twitter.NewTwitter,
-	wire.Bind(new(app.Twitter), new(*twitter.Twitter)),
+	twitter.NewTwitterMock,
+	selectTwitterAdapterDependingOnConfig,
 )
 
 var integrationAdaptersSet = wire.NewSet(
@@ -105,8 +106,8 @@ func newTestAdaptersFactoryFn(deps buildTransactionSqliteAdaptersDependencies) s
 	}
 }
 
-func newSqliteDB(config config.Config, logger logging.Logger) (*sql.DB, func(), error) {
-	v, err := sqlite.Open(config)
+func newSqliteDB(conf config.Config, logger logging.Logger) (*sql.DB, func(), error) {
+	v, err := sqlite.Open(conf)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "error opening the sqlite database")
 	}
@@ -116,4 +117,11 @@ func newSqliteDB(config config.Config, logger logging.Logger) (*sql.DB, func(), 
 			logger.Error().WithError(err).Message("error closing firestore")
 		}
 	}, nil
+}
+
+func selectTwitterAdapterDependingOnConfig(conf config.Config, realAdapter *twitter.Twitter, mockAdapter *twitter.TwitterMock) app.Twitter {
+	if conf.Environment() == config.EnvironmentDevelopment {
+		return mockAdapter
+	}
+	return realAdapter
 }
