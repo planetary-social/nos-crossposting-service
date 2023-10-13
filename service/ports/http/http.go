@@ -25,18 +25,18 @@ var templatesFS embed.FS
 var t = template.Must(template.ParseFS(templatesFS, "templates/*.tmpl"))
 
 type Server struct {
-	config config.Config
+	conf   config.Config
 	app    app.Application
 	logger logging.Logger
 }
 
 func NewServer(
-	config config.Config,
+	conf config.Config,
 	app app.Application,
 	logger logging.Logger,
 ) Server {
 	return Server{
-		config: config,
+		conf:   conf,
 		app:    app,
 		logger: logger.New("server"),
 	}
@@ -46,14 +46,14 @@ func (s *Server) ListenAndServe(ctx context.Context) error {
 	mux := s.createMux()
 
 	var listenConfig net.ListenConfig
-	listener, err := listenConfig.Listen(ctx, "tcp", s.config.ListenAddress())
+	listener, err := listenConfig.Listen(ctx, "tcp", s.conf.ListenAddress())
 	if err != nil {
 		return errors.Wrap(err, "error listening")
 	}
 
 	s.logger.
 		Debug().
-		WithField("address", s.config.ListenAddress()).
+		WithField("address", s.conf.ListenAddress()).
 		Message("started the listener")
 
 	go func() {
@@ -68,8 +68,8 @@ func (s *Server) ListenAndServe(ctx context.Context) error {
 
 func (s *Server) createMux() *http.ServeMux {
 	config := &oauth1.Config{
-		ConsumerKey:    s.config.TwitterKey(),
-		ConsumerSecret: s.config.TwitterKeySecret(),
+		ConsumerKey:    s.conf.TwitterKey(),
+		ConsumerSecret: s.conf.TwitterKeySecret(),
 		CallbackURL:    "http://localhost:8008/callback", // todo config?
 		Endpoint:       twitterOAuth1.AuthorizeEndpoint,
 	}

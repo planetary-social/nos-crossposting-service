@@ -14,18 +14,18 @@ import (
 
 type MetricsServer struct {
 	prometheus *prometheusadapters.Prometheus
-	config     config.Config
+	conf       config.Config
 	logger     logging.Logger
 }
 
 func NewMetricsServer(
 	prometheus *prometheusadapters.Prometheus,
-	config config.Config,
+	conf config.Config,
 	logger logging.Logger,
 ) MetricsServer {
 	return MetricsServer{
 		prometheus: prometheus,
-		config:     config,
+		conf:       conf,
 		logger:     logger.New("metricsServer"),
 	}
 }
@@ -34,7 +34,7 @@ func (s *MetricsServer) ListenAndServe(ctx context.Context) error {
 	mux := s.createMux()
 
 	var listenConfig net.ListenConfig
-	listener, err := listenConfig.Listen(ctx, "tcp", s.config.MetricsListenAddress())
+	listener, err := listenConfig.Listen(ctx, "tcp", s.conf.MetricsListenAddress())
 	if err != nil {
 		return errors.Wrap(err, "error listening")
 	}

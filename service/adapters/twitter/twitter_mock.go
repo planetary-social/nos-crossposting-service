@@ -13,7 +13,9 @@ type TwitterMock struct {
 }
 
 func NewTwitterMock(logger logging.Logger) *TwitterMock {
-	return &TwitterMock{logger: logger}
+	return &TwitterMock{
+		logger: logger.New("twitterMock"),
+	}
 }
 
 func (t *TwitterMock) PostTweet(
@@ -22,6 +24,8 @@ func (t *TwitterMock) PostTweet(
 	userAccessSecret accounts.TwitterUserAccessSecret,
 	tweet domain.Tweet,
 ) error {
-	t.logger.Debug().Message("posted a mock tweet")
+	t.logger.Debug().
+		WithField("text", tweet.Text()).
+		Message("triggered posting a tweet in mock Twitter adapter")
 	return nil
 }

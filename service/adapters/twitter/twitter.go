@@ -15,18 +15,18 @@ import (
 )
 
 type Twitter struct {
-	config  config.Config
+	conf    config.Config
 	logger  logging.Logger
 	metrics app.Metrics
 }
 
 func NewTwitter(
-	config config.Config,
+	conf config.Config,
 	logger logging.Logger,
 	metrics app.Metrics,
 ) *Twitter {
 	return &Twitter{
-		config:  config,
+		conf:    conf,
 		logger:  logger.New("twitter"),
 		metrics: metrics,
 	}
@@ -39,7 +39,7 @@ func (t *Twitter) PostTweet(
 	tweet domain.Tweet,
 ) error {
 	authorizer := newUserAuthorizer(
-		t.config,
+		t.conf,
 		userAccessToken,
 		userAccessSecret,
 		tweet,
@@ -76,21 +76,20 @@ func (t *Twitter) PostTweet(
 }
 
 type userAuthorizer struct {
-	logger           logging.Logger
-	config           config.Config
+	conf             config.Config
 	userAccessToken  accounts.TwitterUserAccessToken
 	userAccessSecret accounts.TwitterUserAccessSecret
 	tweet            domain.Tweet
 }
 
 func newUserAuthorizer(
-	config config.Config,
+	conf config.Config,
 	userAccessToken accounts.TwitterUserAccessToken,
 	userAccessSecret accounts.TwitterUserAccessSecret,
 	tweet domain.Tweet,
 ) *userAuthorizer {
 	return &userAuthorizer{
-		config:           config,
+		conf:             conf,
 		userAccessToken:  userAccessToken,
 		userAccessSecret: userAccessSecret,
 		tweet:            tweet,
@@ -99,8 +98,8 @@ func newUserAuthorizer(
 
 func (a *userAuthorizer) Add(req *http.Request) {
 	auth := oauth1.OAuth1{
-		ConsumerKey:    a.config.TwitterKey(),
-		ConsumerSecret: a.config.TwitterKeySecret(),
+		ConsumerKey:    a.conf.TwitterKey(),
+		ConsumerSecret: a.conf.TwitterKeySecret(),
 		AccessToken:    a.userAccessToken.String(),
 		AccessSecret:   a.userAccessSecret.String(),
 	}

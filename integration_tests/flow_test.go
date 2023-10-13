@@ -225,8 +225,8 @@ func testIngestEventAndSendOutNotifications(t *testing.T, ctx context.Context, e
 	}, durationTimeout, durationTick)
 }
 
-func createClient(ctx context.Context, tb testing.TB, config config.Config) *websocket.Conn {
-	addr := config.NostrListenAddress()
+func createClient(ctx context.Context, tb testing.TB, conf config.Config) *websocket.Conn {
+	addr := conf.NostrListenAddress()
 	if strings.HasPrefix(addr, ":") {
 		addr = "localhost" + addr
 	}

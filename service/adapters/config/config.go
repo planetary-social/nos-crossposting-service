@@ -11,9 +11,9 @@ import (
 )
 
 const (
-	envPrefix = "NOTIFICATIONS"
+	envPrefix = "CROSSPOSTING"
 
-	envNostrListenAddress   = "NOSTR_LISTEN_ADDRESS"
+	envNostrListenAddress   = "LISTEN_ADDRESS"
 	envMetricsListenAddress = "METRICS_LISTEN_ADDRESS"
 	envEnvironment          = "ENVIRONMENT"
 	envLogLevel             = "LOG_LEVEL"
