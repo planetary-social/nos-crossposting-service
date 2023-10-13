@@ -4,6 +4,7 @@ import (
 	"context"
 	"net"
 	"net/http"
+	"strings"
 
 	"github.com/boreq/errors"
 	oauth12 "github.com/dghubble/gologin/v2/oauth1"
@@ -17,6 +18,8 @@ import (
 	"github.com/planetary-social/nos-crossposting-service/service/domain/accounts"
 	"github.com/planetary-social/nos-crossposting-service/service/ports/http/frontend"
 )
+
+const loginCallbackPath = `/login-callback`
 
 type Server struct {
 	conf               config.Config
@@ -67,7 +70,7 @@ func (s *Server) createMux() *http.ServeMux {
 	config := &oauth1.Config{
 		ConsumerKey:    s.conf.TwitterKey(),
 		ConsumerSecret: s.conf.TwitterKeySecret(),
-		CallbackURL:    "http://localhost:8008/callback", // todo config?
+		CallbackURL:    s.twitterLoginCallbackURL(),
 		Endpoint:       twitterOAuth1.AuthorizeEndpoint,
 	}
 
@@ -75,9 +78,14 @@ func (s *Server) createMux() *http.ServeMux {
 	mux.Handle("/", http.FileServer(s.frontendFileSystem))
 	mux.HandleFunc("/link-public-key", s.serveLinkPublicKey)
 	mux.Handle("/login", twitter.LoginHandler(config, nil))
-	mux.Handle("/callback", twitter.CallbackHandler(config, s.issueSession(), nil))
+	mux.Handle(loginCallbackPath, twitter.CallbackHandler(config, s.issueSession(), nil))
 
 	return mux
+}
+
+func (s *Server) twitterLoginCallbackURL() string {
+	base := strings.TrimRight(s.conf.PublicFacingAddress(), "/")
+	return base + loginCallbackPath
 }
 
 func (s *Server) serveLinkPublicKey(w http.ResponseWriter, r *http.Request) {

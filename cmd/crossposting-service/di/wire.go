@@ -56,6 +56,7 @@ func newTestAdaptersConfig(tb testing.TB) (config.Config, error) {
 		fixtures.SomeString(),
 		fixtures.SomeString(),
 		fixtures.SomeFile(tb),
+		fixtures.SomeString(),
 	)
 }
 
