@@ -7,10 +7,12 @@ import (
 	"strings"
 
 	"github.com/boreq/errors"
+	"github.com/boreq/rest"
 	oauth12 "github.com/dghubble/gologin/v2/oauth1"
 	"github.com/dghubble/gologin/v2/twitter"
 	"github.com/dghubble/oauth1"
 	twitterOAuth1 "github.com/dghubble/oauth1/twitter"
+	"github.com/planetary-social/nos-crossposting-service/internal"
 	"github.com/planetary-social/nos-crossposting-service/internal/logging"
 	"github.com/planetary-social/nos-crossposting-service/service/app"
 	"github.com/planetary-social/nos-crossposting-service/service/config"
@@ -78,6 +80,7 @@ func (s *Server) createMux() *http.ServeMux {
 	mux.Handle("/", http.FileServer(s.frontendFileSystem))
 	mux.HandleFunc("/link-public-key", s.serveLinkPublicKey)
 	mux.Handle("/login", twitter.LoginHandler(config, nil))
+	mux.HandleFunc("/api/current-user", rest.Wrap(s.apiCurrentUser))
 	mux.Handle(loginCallbackPath, twitter.CallbackHandler(config, s.issueSession(), nil))
 
 	return mux
@@ -180,6 +183,28 @@ func (s *Server) issueSessionErr(w http.ResponseWriter, req *http.Request) error
 	return nil
 }
 
+func (s *Server) apiCurrentUser(r *http.Request) rest.RestResponse {
+	account, err := s.getAccountFromRequest(r)
+	if err != nil {
+		s.logger.Error().WithError(err).Message("error getting account from request")
+		return rest.ErrInternalServerError
+	}
+
+	if account == nil {
+		return rest.NewResponse(
+			currentUserResponse{
+				User: nil,
+			},
+		)
+	}
+
+	return rest.NewResponse(
+		currentUserResponse{
+			User: internal.Pointer(newTransportUser(*account)),
+		},
+	)
+}
+
 func (s *Server) getAccountFromRequest(r *http.Request) (*accounts.Account, error) {
 	sessionID, err := GetSessionIDFromCookie(r)
 	if err != nil {
@@ -202,22 +227,18 @@ func (s *Server) getAccountFromRequest(r *http.Request) (*accounts.Account, erro
 	return account, nil
 }
 
-func (s *Server) templateDataFromAccount(account *accounts.Account) map[string]any {
-	if account == nil {
-		return map[string]any{
-			"account": nil,
-		}
-	}
-
-	return map[string]any{
-		"account": accountTransport{
-			AccountID: account.AccountID().String(),
-			TwitterID: account.TwitterID().Int64(),
-		},
-	}
+type currentUserResponse struct {
+	User *transportUser `json:"user"`
 }
 
-type accountTransport struct {
-	AccountID string
-	TwitterID int64
+type transportUser struct {
+	AccountID string `json:"accountID"`
+	TwitterID int64  `json:"twitterID"`
+}
+
+func newTransportUser(account accounts.Account) transportUser {
+	return transportUser{
+		AccountID: account.AccountID().String(),
+		TwitterID: account.TwitterID().Int64(),
+	}
 }
