@@ -101,6 +101,13 @@ CROSSPOSTING_ENVIRONMENT=DEVELOPMENT \
 go run ./cmd/crossposting-service
 ```
 
+#### Updating frontend files
+
+In order to update the embedded compiled frontend files run the following
+command:
+
+    $ make frontend
+
 ### Makefile
 
 We recommend reading the `Makefile` to discover some targets which you can

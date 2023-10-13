@@ -2,8 +2,6 @@ package http
 
 import (
 	"context"
-	"embed"
-	"html/template"
 	"net"
 	"net/http"
 
@@ -17,28 +15,27 @@ import (
 	"github.com/planetary-social/nos-crossposting-service/service/config"
 	"github.com/planetary-social/nos-crossposting-service/service/domain"
 	"github.com/planetary-social/nos-crossposting-service/service/domain/accounts"
+	"github.com/planetary-social/nos-crossposting-service/service/ports/http/frontend"
 )
 
-//go:embed templates/*
-var templatesFS embed.FS
-
-var t = template.Must(template.ParseFS(templatesFS, "templates/*.tmpl"))
-
 type Server struct {
-	conf   config.Config
-	app    app.Application
-	logger logging.Logger
+	conf               config.Config
+	app                app.Application
+	logger             logging.Logger
+	frontendFileSystem *frontend.FrontendFileSystem
 }
 
 func NewServer(
 	conf config.Config,
 	app app.Application,
 	logger logging.Logger,
+	frontendFileSystem *frontend.FrontendFileSystem,
 ) Server {
 	return Server{
-		conf:   conf,
-		app:    app,
-		logger: logger.New("server"),
+		conf:               conf,
+		app:                app,
+		logger:             logger.New("server"),
+		frontendFileSystem: frontendFileSystem,
 	}
 }
 
@@ -75,25 +72,12 @@ func (s *Server) createMux() *http.ServeMux {
 	}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", s.serveIndex)
+	mux.Handle("/", http.FileServer(s.frontendFileSystem))
 	mux.HandleFunc("/link-public-key", s.serveLinkPublicKey)
 	mux.Handle("/login", twitter.LoginHandler(config, nil))
 	mux.Handle("/callback", twitter.CallbackHandler(config, s.issueSession(), nil))
+
 	return mux
-}
-
-func (s *Server) serveIndex(w http.ResponseWriter, r *http.Request) {
-	account, err := s.getAccountFromRequest(r)
-	if err != nil {
-		s.renderError(w, err)
-		return
-	}
-
-	data := s.templateDataFromAccount(account)
-
-	if err := t.ExecuteTemplate(w, "index.tmpl", data); err != nil {
-		s.logger.Error().WithError(err).Message("error rendering index")
-	}
 }
 
 func (s *Server) serveLinkPublicKey(w http.ResponseWriter, r *http.Request) {

@@ -24,6 +24,7 @@ import (
 	"github.com/planetary-social/nos-crossposting-service/service/config"
 	"github.com/planetary-social/nos-crossposting-service/service/domain"
 	"github.com/planetary-social/nos-crossposting-service/service/ports/http"
+	"github.com/planetary-social/nos-crossposting-service/service/ports/http/frontend"
 	memorypubsub2 "github.com/planetary-social/nos-crossposting-service/service/ports/memorypubsub"
 	"github.com/planetary-social/nos-crossposting-service/service/ports/sqlitepubsub"
 )
@@ -59,7 +60,12 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 		LoginOrRegister:   loginOrRegisterHandler,
 		LinkPublicKey:     linkPublicKeyHandler,
 	}
-	server := http.NewServer(configConfig, application, logger)
+	frontendFileSystem, err := frontend.NewFrontendFileSystem()
+	if err != nil {
+		cleanup()
+		return Service{}, nil, err
+	}
+	server := http.NewServer(configConfig, application, logger, frontendFileSystem)
 	metricsServer := http.NewMetricsServer(prometheusPrometheus, configConfig, logger)
 	receivedEventPubSub := memorypubsub.NewReceivedEventPubSub()
 	purplePages, err := adapters.NewPurplePages(contextContext, logger)
