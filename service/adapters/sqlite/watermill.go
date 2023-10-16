@@ -13,6 +13,10 @@ import (
 	"github.com/boreq/errors"
 )
 
+const (
+	consumerGroupName = "main"
+)
+
 func NewWatermillPublisher(
 	tx *sql.Tx,
 	logger watermill.LoggerAdapter,
@@ -33,7 +37,7 @@ func NewWatermillSubscriber(
 	offsetsAdapter watermillsql.OffsetsAdapter,
 ) (*watermillsql.Subscriber, error) {
 	config := watermillsql.SubscriberConfig{
-		ConsumerGroup:    "main",
+		ConsumerGroup:    consumerGroupName,
 		PollInterval:     30 * time.Second,
 		ResendInterval:   30 * time.Second,
 		RetryInterval:    30 * time.Second,
@@ -43,14 +47,6 @@ func NewWatermillSubscriber(
 	}
 
 	return watermillsql.NewSubscriber(db, config, logger)
-}
-
-func NewWatermillSchemaAdapter() watermillsql.SchemaAdapter {
-	return SqliteSchema{
-		GenerateMessagesTableName: func(topic string) string {
-			return fmt.Sprintf("watermill_%s", topic)
-		},
-	}
 }
 
 func NewWatermillOffsetsAdapter() watermillsql.OffsetsAdapter {
@@ -64,6 +60,14 @@ func NewWatermillOffsetsAdapter() watermillsql.OffsetsAdapter {
 type SqliteSchema struct {
 	GenerateMessagesTableName func(topic string) string
 	SubscribeBatchSize        int
+}
+
+func NewSqliteSchema() SqliteSchema {
+	return SqliteSchema{
+		GenerateMessagesTableName: func(topic string) string {
+			return fmt.Sprintf("watermill_%s", topic)
+		},
+	}
 }
 
 func (s SqliteSchema) SchemaInitializingQueries(topic string) []string {

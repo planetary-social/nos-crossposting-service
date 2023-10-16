@@ -23,6 +23,7 @@ type TestAdapters struct {
 type TestedItems struct {
 	TransactionProvider *TestTransactionProvider
 	Migrations          *Migrations
+	Subscriber          *Subscriber
 }
 
 func Open(conf config.Config) (*sql.DB, error) {

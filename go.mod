@@ -18,6 +18,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.17
 	github.com/nbd-wtf/go-nostr v0.18.10
 	github.com/oklog/ulid/v2 v2.1.0
+	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.16.0
 	github.com/rs/zerolog v1.29.1
 	github.com/sirupsen/logrus v1.9.3
@@ -51,7 +52,6 @@ require (
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
-	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_model v0.3.0 // indirect
 	github.com/prometheus/common v0.42.0 // indirect
