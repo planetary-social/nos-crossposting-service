@@ -36,6 +36,7 @@ type Prometheus struct {
 	applicationHandlerCallsCounter          *prometheus.CounterVec
 	applicationHandlerCallDurationHistogram *prometheus.HistogramVec
 
+	subscriptionQueueLengthGauge           *prometheus.GaugeVec
 	numberOfPublicKeyDownloadersGauge      prometheus.Gauge
 	numberOfPublicKeyDownloaderRelaysGauge *prometheus.GaugeVec
 	relayConnectionStateGauge              *prometheus.GaugeVec
@@ -140,6 +141,7 @@ func NewPrometheus(logger logging.Logger) (*Prometheus, error) {
 		applicationHandlerCallsCounter:          applicationHandlerCallsCounter,
 		applicationHandlerCallDurationHistogram: applicationHandlerCallDurationHistogram,
 
+		subscriptionQueueLengthGauge:           subscriptionQueueLengthGauge,
 		numberOfPublicKeyDownloadersGauge:      numberOfPublicKeyDownloadersGauge,
 		numberOfPublicKeyDownloaderRelaysGauge: numberOfPublicKeyDownloaderRelaysGauge,
 		relayConnectionStateGauge:              relayConnectionStateGauge,
@@ -190,6 +192,10 @@ func (p *Prometheus) ReportCallingTwitterAPIToPostATweet(err error) {
 		labels = prometheus.Labels{labelResult: labelResultValueError}
 	}
 	p.twitterAPICallsToPostTweetCounter.With(labels).Inc()
+}
+
+func (p *Prometheus) ReportSubscriptionQueueLength(topic string, n int) {
+	p.subscriptionQueueLengthGauge.With(prometheus.Labels{labelTopic: topic}).Set(float64(n))
 }
 
 type ApplicationCall struct {

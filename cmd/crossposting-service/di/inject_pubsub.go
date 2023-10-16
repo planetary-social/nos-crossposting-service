@@ -1,6 +1,7 @@
 package di
 
 import (
+	watermillsql "github.com/ThreeDotsLabs/watermill-sql/v2/pkg/sql"
 	"github.com/google/wire"
 	"github.com/planetary-social/nos-crossposting-service/service/adapters/memorypubsub"
 	"github.com/planetary-social/nos-crossposting-service/service/adapters/sqlite"
@@ -15,10 +16,13 @@ var memoryPubsubSet = wire.NewSet(
 )
 
 var sqlitePubsubSet = wire.NewSet(
-	sqlite.NewWatermillSchemaAdapter,
+	sqlite.NewSqliteSchema,
+	wire.Bind(new(watermillsql.SchemaAdapter), new(sqlite.SqliteSchema)),
+
 	sqlite.NewWatermillOffsetsAdapter,
 	sqlite.NewWatermillSubscriber,
 	sqlitepubsubport.NewTweetCreatedEventSubscriber,
+	sqlite.NewSubscriber,
 )
 
 var sqliteTxPubsubSet = wire.NewSet(

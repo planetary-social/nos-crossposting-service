@@ -3,8 +3,8 @@ package sqlitepubsub
 import (
 	"context"
 	"encoding/json"
+	"time"
 
-	watermillsql "github.com/ThreeDotsLabs/watermill-sql/v2/pkg/sql"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/boreq/errors"
 	"github.com/planetary-social/nos-crossposting-service/internal/logging"
@@ -14,30 +14,37 @@ import (
 	"github.com/planetary-social/nos-crossposting-service/service/domain/accounts"
 )
 
+const reportMetricsEvery = 60 * time.Second
+
 type SendTweetHandler interface {
 	Handle(ctx context.Context, cmd app.SendTweet) (err error)
 }
 
 type TweetCreatedEventSubscriber struct {
-	handler             SendTweetHandler
-	watermillSubscriber *watermillsql.Subscriber
-	logger              logging.Logger
+	handler    SendTweetHandler
+	subscriber *sqlite.Subscriber
+	logger     logging.Logger
+	metrics    app.Metrics
 }
 
 func NewTweetCreatedEventSubscriber(
 	handler SendTweetHandler,
-	watermillSubscriber *watermillsql.Subscriber,
+	subscriber *sqlite.Subscriber,
 	logger logging.Logger,
+	metrics app.Metrics,
 ) *TweetCreatedEventSubscriber {
 	return &TweetCreatedEventSubscriber{
-		handler:             handler,
-		watermillSubscriber: watermillSubscriber,
-		logger:              logger.New("tweetCreatedEventSubscriber"),
+		handler:    handler,
+		subscriber: subscriber,
+		logger:     logger.New("tweetCreatedEventSubscriber"),
+		metrics:    metrics,
 	}
 }
 
 func (s *TweetCreatedEventSubscriber) Run(ctx context.Context) error {
-	ch, err := s.watermillSubscriber.Subscribe(ctx, sqlite.TweetCreatedTopic)
+	go s.reportMetricsLoop(ctx)
+
+	ch, err := s.subscriber.SubscribeToTweetCreated(ctx)
 	if err != nil {
 		return errors.Wrap(err, "error calling subscribe")
 	}
@@ -72,5 +79,31 @@ func (s *TweetCreatedEventSubscriber) handleMessage(ctx context.Context, msg *me
 		return errors.Wrap(err, "error calling the handler")
 	}
 
+	return nil
+}
+
+func (s *TweetCreatedEventSubscriber) reportMetricsLoop(ctx context.Context) {
+	for {
+		if err := s.reportMetrics(ctx); err != nil {
+			s.logger.Error().WithError(err).Message("error reporting metrics")
+		}
+
+		select {
+		case <-time.After(reportMetricsEvery):
+			continue
+		case <-ctx.Done():
+			return
+
+		}
+	}
+}
+
+func (s *TweetCreatedEventSubscriber) reportMetrics(ctx context.Context) error {
+	n, err := s.subscriber.TweetCreatedQueueLength(ctx)
+	if err != nil {
+		return errors.Wrap(err, "error reading queue length")
+	}
+
+	s.metrics.ReportSubscriptionQueueLength(sqlite.TweetCreatedTopic, n)
 	return nil
 }

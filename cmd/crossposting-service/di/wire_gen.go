@@ -85,15 +85,16 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 	noopTwitter := twitter.NewNoopTwitter(logger)
 	appTwitter := selectTwitterAdapterDependingOnConfig(configConfig, twitterTwitter, noopTwitter)
 	sendTweetHandler := app.NewSendTweetHandler(genericTransactionProvider, appTwitter, logger, prometheusPrometheus)
-	schemaAdapter := sqlite.NewWatermillSchemaAdapter()
+	sqliteSchema := sqlite.NewSqliteSchema()
 	offsetsAdapter := sqlite.NewWatermillOffsetsAdapter()
-	subscriber, err := sqlite.NewWatermillSubscriber(db, watermillAdapter, schemaAdapter, offsetsAdapter)
+	subscriber, err := sqlite.NewWatermillSubscriber(db, watermillAdapter, sqliteSchema, offsetsAdapter)
 	if err != nil {
 		cleanup()
 		return Service{}, nil, err
 	}
-	tweetCreatedEventSubscriber := sqlitepubsub.NewTweetCreatedEventSubscriber(sendTweetHandler, subscriber, logger)
-	migrations := sqlite.NewMigrations(db, schemaAdapter, offsetsAdapter)
+	sqliteSubscriber := sqlite.NewSubscriber(subscriber, offsetsAdapter, sqliteSchema, db)
+	tweetCreatedEventSubscriber := sqlitepubsub.NewTweetCreatedEventSubscriber(sendTweetHandler, sqliteSubscriber, logger, prometheusPrometheus)
+	migrations := sqlite.NewMigrations(db, sqliteSchema, offsetsAdapter)
 	service := NewService(application, server, metricsServer, downloader, receivedEventSubscriber, tweetCreatedEventSubscriber, migrations)
 	return service, func() {
 		cleanup()
@@ -119,12 +120,19 @@ func BuildTestAdapters(contextContext context.Context, tb testing.TB) (sqlite.Te
 	}
 	genericAdaptersFactoryFn := newTestAdaptersFactoryFn(diBuildTransactionSqliteAdaptersDependencies)
 	genericTransactionProvider := sqlite.NewTestTransactionProvider(db, genericAdaptersFactoryFn)
-	schemaAdapter := sqlite.NewWatermillSchemaAdapter()
+	sqliteSchema := sqlite.NewSqliteSchema()
 	offsetsAdapter := sqlite.NewWatermillOffsetsAdapter()
-	migrations := sqlite.NewMigrations(db, schemaAdapter, offsetsAdapter)
+	migrations := sqlite.NewMigrations(db, sqliteSchema, offsetsAdapter)
+	subscriber, err := sqlite.NewWatermillSubscriber(db, watermillAdapter, sqliteSchema, offsetsAdapter)
+	if err != nil {
+		cleanup()
+		return sqlite.TestedItems{}, nil, err
+	}
+	sqliteSubscriber := sqlite.NewSubscriber(subscriber, offsetsAdapter, sqliteSchema, db)
 	testedItems := sqlite.TestedItems{
 		TransactionProvider: genericTransactionProvider,
 		Migrations:          migrations,
+		Subscriber:          sqliteSubscriber,
 	}
 	return testedItems, func() {
 		cleanup()
@@ -153,8 +161,8 @@ func buildTransactionSqliteAdapters(db *sql.DB, tx *sql.Tx, diBuildTransactionSq
 		return app.Adapters{}, err
 	}
 	loggerAdapter := diBuildTransactionSqliteAdaptersDependencies.LoggerAdapter
-	schemaAdapter := sqlite.NewWatermillSchemaAdapter()
-	publisher, err := sqlite.NewWatermillPublisher(tx, loggerAdapter, schemaAdapter)
+	sqliteSchema := sqlite.NewSqliteSchema()
+	publisher, err := sqlite.NewWatermillPublisher(tx, loggerAdapter, sqliteSchema)
 	if err != nil {
 		return app.Adapters{}, err
 	}
@@ -192,8 +200,8 @@ func buildTestTransactionSqliteAdapters(db *sql.DB, tx *sql.Tx, diBuildTransacti
 		return sqlite.TestAdapters{}, err
 	}
 	loggerAdapter := diBuildTransactionSqliteAdaptersDependencies.LoggerAdapter
-	schemaAdapter := sqlite.NewWatermillSchemaAdapter()
-	publisher, err := sqlite.NewWatermillPublisher(tx, loggerAdapter, schemaAdapter)
+	sqliteSchema := sqlite.NewSqliteSchema()
+	publisher, err := sqlite.NewWatermillPublisher(tx, loggerAdapter, sqliteSchema)
 	if err != nil {
 		return sqlite.TestAdapters{}, err
 	}
