@@ -1,14 +1,15 @@
 import axios, {AxiosResponse} from 'axios';
 import {CurrentUser} from "@/dto/CurrentUser";
-import {Mutation} from '@/store';
+import {Mutation, State} from '@/store';
 import {PublicKeys} from "@/dto/PublicKeys";
 import {AddPublicKeyRequest} from "@/dto/AddPublicKeyRequest";
+import {Store} from "vuex";
 
 export class APIService {
 
     private readonly axios = axios.create();
 
-    constructor(private store: any) {
+    constructor(private store: Store<State>) {
     }
 
     currentUser(): Promise<AxiosResponse<CurrentUser>> {

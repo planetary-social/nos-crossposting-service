@@ -27,11 +27,10 @@
           You haven't added any public keys yet.
         </p>
       </div>
+
+      <input placeholder="npub..." v-model="npub">
+      <button @click="addPublicKey">Link public key</button>
     </div>
-
-    <input placeholder="npub..." v-model="npub">
-    <button @click="addPublicKey">Link public key</button>
-
   </div>
 </template>
 
@@ -79,11 +78,11 @@ export default class HomeView extends Vue {
 
   addPublicKey(): void {
     this.apiService.addPublicKey(new AddPublicKeyRequest(this.npub))
-        .then(resp => {
-          console.log("added");
+        .then(response => {
+          console.log("added", response);
         })
         .catch(error => {
-          console.log("error");
+          console.log("error", error);
         })
   }
 }
