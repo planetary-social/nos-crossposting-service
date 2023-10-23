@@ -9,19 +9,17 @@ import (
 	"github.com/planetary-social/nos-crossposting-service/service/domain/accounts"
 )
 
-type NoopOnWriteTwitter struct {
-	twitter *Twitter
-	logger  logging.Logger
+type DevelopmentTwitter struct {
+	logger logging.Logger
 }
 
-func NewNoopOnWriteTwitter(twitter *Twitter, logger logging.Logger) *NoopOnWriteTwitter {
-	return &NoopOnWriteTwitter{
-		twitter: twitter,
-		logger:  logger.New("noopOnWriteTwitter"),
+func NewDevelopmentTwitter(logger logging.Logger) *DevelopmentTwitter {
+	return &DevelopmentTwitter{
+		logger: logger.New("noopOnWriteTwitter"),
 	}
 }
 
-func (t *NoopOnWriteTwitter) PostTweet(
+func (t *DevelopmentTwitter) PostTweet(
 	ctx context.Context,
 	userAccessToken accounts.TwitterUserAccessToken,
 	userAccessSecret accounts.TwitterUserAccessSecret,
@@ -33,10 +31,15 @@ func (t *NoopOnWriteTwitter) PostTweet(
 	return nil
 }
 
-func (t *NoopOnWriteTwitter) GetAccountDetails(
+func (t *DevelopmentTwitter) GetAccountDetails(
 	ctx context.Context,
 	userAccessToken accounts.TwitterUserAccessToken,
 	userAccessSecret accounts.TwitterUserAccessSecret,
 ) (app.TwitterAccountDetails, error) {
-	return t.twitter.GetAccountDetails(ctx, userAccessToken, userAccessSecret)
+	// it is too easy to hit API limits using a free API key during development
+	return app.NewTwitterAccountDetails(
+		"Fake Display Name",
+		"fakeusername",
+		"https://pbs.twimg.com/profile_images/1544326468490170368/VCPwpDkL_normal.jpg",
+	)
 }

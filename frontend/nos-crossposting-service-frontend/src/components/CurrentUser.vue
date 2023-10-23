@@ -8,15 +8,17 @@
         <img src="../assets/logout_on_dark.svg">
       </a>
     </div>
-    <img class="checkmark" src="../assets/checkmark.svg">
+    <Checkmark></Checkmark>
   </div>
 </template>
 
 <script lang="ts">
 import {Options, Vue} from 'vue-class-component';
 import {User} from "@/dto/User";
+import Checkmark from "@/components/Checkmark.vue";
 
 @Options({
+  components: {Checkmark},
   props: {
     user: User
   },
@@ -48,7 +50,7 @@ export default class CurrentUser extends Vue {
     align-items: center;
 
     border: 3px solid #9379BF;
-    gap: 20px;
+    gap: 5px 20px;
     padding: 20px;
 
     .image {

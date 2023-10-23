@@ -81,6 +81,10 @@ type Twitter interface {
 	) (TwitterAccountDetails, error)
 }
 
+type TwitterAccountDetailsCache interface {
+	Get(accountID accounts.AccountID, updateFn func() (TwitterAccountDetails, error)) (TwitterAccountDetails, error)
+}
+
 type Adapters struct {
 	Accounts        AccountRepository
 	Sessions        SessionRepository

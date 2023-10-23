@@ -2,7 +2,7 @@
   <div class="home">
     <Explanation/>
 
-    <div v-if="!loading && !user">
+    <div v-if="!loadingUser && !user">
       <div class="step">
         1. Link your X account:
       </div>
@@ -10,7 +10,7 @@
       <LogInWithTwitterButton/>
     </div>
 
-    <div v-if="!loading && user">
+    <div v-if="!loadingUser && user">
       <div class="step">
         1. Logged in as
       </div>
@@ -22,32 +22,24 @@
       2. Your nostr identities:
     </div>
 
-    <Input placeholder="Paste your npub address"></Input>
-
-    <div v-if="loading">
-      Loading...
-    </div>
-
-    <div v-if="!loading && user">
+    <div class="public-keys-wrapper" v-if="!loadingUser && user">
       <div v-if="!publicKeys">
         Loading public keys...
       </div>
 
-      <div v-if="publicKeys">
-        <ul v-if="publicKeys.publicKeys?.length > 0">
-          <li v-for="publicKey in publicKeys.publicKeys" :key="publicKey.npub">
-            {{ publicKey.npub }}
-          </li>
-        </ul>
-
-        <p v-if="publicKeys.publicKeys?.length == 0">
-          You haven't added any public keys yet.
-        </p>
-      </div>
-
-      <input placeholder="npub..." v-model="npub">
-      <button @click="addPublicKey">Link public key</button>
+      <ul class="public-keys"
+          v-if="publicKeys && publicKeys.publicKeys?.length > 0">
+        <li v-for="publicKey in publicKeys.publicKeys" :key="publicKey.npub">
+          <div class="npub">{{ publicKey.npub }}</div>
+          <Checkmark></Checkmark>
+        </li>
+      </ul>
     </div>
+
+    <form>
+      <Input placeholder="Paste your npub address" v-model="npub"></Input>
+      <Button text="Add" @click="addPublicKey"></Button>
+    </form>
   </div>
 </template>
 
@@ -62,10 +54,14 @@ import {APIService} from "@/services/APIService";
 import {PublicKeys} from "@/dto/PublicKeys";
 import {AddPublicKeyRequest} from "@/dto/AddPublicKeyRequest";
 import Input from "@/components/Input.vue";
+import Button from "@/components/Button.vue";
+import Checkmark from "@/components/Checkmark.vue";
 
 
 @Options({
   components: {
+    Checkmark,
+    Button,
     CurrentUser,
     LogInWithTwitterButton,
     Explanation,
@@ -80,7 +76,7 @@ export default class HomeView extends Vue {
   publicKeys: PublicKeys | null = null;
   npub = "";
 
-  get loading(): boolean {
+  get loadingUser(): boolean {
     return this.store.state.user === undefined;
   }
 
@@ -111,5 +107,46 @@ export default class HomeView extends Vue {
 .step {
   font-size: 28px;
   margin-top: 2em;
+}
+
+form, .public-keys-wrapper {
+  margin: 28px 0;
+}
+
+button {
+  margin-left: 1em;
+}
+
+.public-keys {
+  list-style-type: none;
+  font-size: 28px;
+  margin: 0;
+  padding: 0;
+
+  li {
+    margin: 1em 0;
+    padding: 0;
+    color: #9379BF;
+    font-style: normal;
+    font-weight: 700;
+
+    &:first-child {
+      margin-top: 0;
+    }
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    .npub, .checkmark {
+      display: inline-block;
+    }
+
+    .npub {
+      width: 300px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
 }
 </style>
