@@ -2,15 +2,19 @@
   <div class="home">
     <Explanation/>
 
-    <div class="step">
-      1. Link your X account:
-    </div>
-
     <div v-if="!loading && !user">
+      <div class="step">
+        1. Link your X account:
+      </div>
+
       <LogInWithTwitterButton/>
     </div>
 
     <div v-if="!loading && user">
+      <div class="step">
+        1. Logged in as
+      </div>
+
       <CurrentUser :user="user"/>
     </div>
 
