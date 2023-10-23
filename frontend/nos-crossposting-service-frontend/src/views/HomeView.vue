@@ -1,17 +1,30 @@
 <template>
   <div class="home">
-    <div v-if="loading">
-      Loading...
+    <Explanation/>
+
+    <div class="step">
+      1. Link your X account:
     </div>
 
     <div v-if="!loading && !user">
-      <Explanation/>
       <LogInWithTwitterButton/>
     </div>
 
     <div v-if="!loading && user">
       <CurrentUser :user="user"/>
+    </div>
 
+    <div class="step">
+      2. Your nostr identities:
+    </div>
+
+    <Input placeholder="Paste your npub address"></Input>
+
+    <div v-if="loading">
+      Loading...
+    </div>
+
+    <div v-if="!loading && user">
       <div v-if="!publicKeys">
         Loading public keys...
       </div>
@@ -44,6 +57,7 @@ import CurrentUser from "@/components/CurrentUser.vue";
 import {APIService} from "@/services/APIService";
 import {PublicKeys} from "@/dto/PublicKeys";
 import {AddPublicKeyRequest} from "@/dto/AddPublicKeyRequest";
+import Input from "@/components/Input.vue";
 
 
 @Options({
@@ -51,6 +65,7 @@ import {AddPublicKeyRequest} from "@/dto/AddPublicKeyRequest";
     CurrentUser,
     LogInWithTwitterButton,
     Explanation,
+    Input,
   },
 })
 export default class HomeView extends Vue {
@@ -87,3 +102,10 @@ export default class HomeView extends Vue {
   }
 }
 </script>
+
+<style scoped lang="scss">
+.step {
+  font-size: 28px;
+  margin-top: 2em;
+}
+</style>

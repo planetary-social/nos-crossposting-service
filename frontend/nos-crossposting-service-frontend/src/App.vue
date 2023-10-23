@@ -1,30 +1,43 @@
 <template>
-  <h1>
-    Nos crossposting service
-    {{ user }}
-  </h1>
-  <router-view/>
+  <div class="wrapper">
+    <Header></Header>
+
+      {{ user }}
+    <router-view/>
+  </div>
 </template>
 
 <style lang="scss">
+html, body {
+  padding: 0;
+  margin: 0;
+  color: #fff;
+}
+
+html {
+  background: linear-gradient(#160f24, #281945);
+  min-height: 100%;
+}
+
+body {
+  min-height: 100%;
+  height: auto;
+}
+
+body {
+  background-image: url("./assets/background.svg");
+  background-position: right center;
+  background-repeat: no-repeat;
+  background-size: auto 100%;
+}
+
 #app {
   font-family: Avenir, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
-}
 
-nav {
-  padding: 30px;
-
-  a {
-    font-weight: bold;
-    color: #2c3e50;
-
-    &.router-link-exact-active {
-      color: #42b983;
-    }
+  .wrapper {
+    padding: 4em;
   }
 }
 </style>
@@ -33,8 +46,13 @@ nav {
 import {Options, Vue} from 'vue-class-component';
 import {useStore} from "vuex";
 import {APIService} from "@/services/APIService";
+import Header from "@/components/Header.vue";
 
-@Options({})
+@Options({
+  components: {
+    Header,
+  }
+})
 export default class App extends Vue {
 
   private readonly apiService = new APIService(useStore());
