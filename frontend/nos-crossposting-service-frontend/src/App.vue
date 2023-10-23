@@ -2,7 +2,7 @@
   <div class="wrapper">
     <Header></Header>
 
-      {{ user }}
+    {{ user }}
     <router-view/>
   </div>
 </template>
@@ -12,16 +12,11 @@ html, body {
   padding: 0;
   margin: 0;
   color: #fff;
+  height: 100%;
 }
 
 html {
   background: linear-gradient(#160f24, #281945);
-  min-height: 100%;
-}
-
-body {
-  min-height: 100%;
-  height: auto;
 }
 
 body {
