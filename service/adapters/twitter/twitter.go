@@ -42,7 +42,7 @@ func (t *Twitter) PostTweet(
 		t.conf,
 		userAccessToken,
 		userAccessSecret,
-		tweet,
+		nil,
 	)
 
 	client := &twitter.Client{
@@ -56,15 +56,7 @@ func (t *Twitter) PostTweet(
 	})
 	t.metrics.ReportCallingTwitterAPIToPostATweet(err)
 	if err != nil {
-		var errorResponse *twitter.ErrorResponse
-		if errors.As(err, &errorResponse) {
-			t.logger.Error().
-				WithField("statusCode", errorResponse.StatusCode).
-				WithField("title", errorResponse.Title).
-				WithField("detail", errorResponse.Detail).
-				WithField("type", errorResponse.Type).
-				Message("received an error response from twitter")
-		}
+		t.logError(err)
 		return errors.Wrap(err, "error calling create tweet")
 	}
 
@@ -75,24 +67,81 @@ func (t *Twitter) PostTweet(
 	return nil
 }
 
+func (t *Twitter) GetAccountDetails(
+	ctx context.Context,
+	userAccessToken accounts.TwitterUserAccessToken,
+	userAccessSecret accounts.TwitterUserAccessSecret,
+) (app.TwitterAccountDetails, error) {
+	authorizer := newUserAuthorizer(
+		t.conf,
+		userAccessToken,
+		userAccessSecret,
+		map[string]string{
+			"user.fields": "username,name,profile_image_url",
+		},
+	)
+
+	client := &twitter.Client{
+		Authorizer: authorizer,
+		Client:     http.DefaultClient,
+		Host:       "https://api.twitter.com",
+	}
+
+	result, err := client.UserLookup(ctx, []string{"me"}, twitter.UserLookupOpts{
+		UserFields: []twitter.UserField{
+			twitter.UserFieldUserName,
+			twitter.UserFieldName,
+			twitter.UserFieldProfileImageURL,
+		},
+	})
+	t.metrics.ReportCallingTwitterAPIToGetAUser(err)
+	if err != nil {
+		t.logError(err)
+		return app.TwitterAccountDetails{}, errors.Wrap(err, "error looking up the user")
+	}
+
+	if len(result.Raw.Users) != 1 {
+		return app.TwitterAccountDetails{}, errors.Wrap(err, "expected 1 user")
+	}
+
+	user := result.Raw.Users[0]
+	return app.NewTwitterAccountDetails(user.Name, user.UserName, user.ProfileImageURL)
+}
+
+func (t *Twitter) logError(err error) {
+	var errorResponse *twitter.ErrorResponse
+	if errors.As(err, &errorResponse) {
+		t.logger.Error().
+			WithField("statusCode", errorResponse.StatusCode).
+			WithField("title", errorResponse.Title).
+			WithField("detail", errorResponse.Detail).
+			WithField("type", errorResponse.Type).
+			Message("received an error response from twitter")
+	}
+}
+
 type userAuthorizer struct {
 	conf             config.Config
 	userAccessToken  accounts.TwitterUserAccessToken
 	userAccessSecret accounts.TwitterUserAccessSecret
-	tweet            domain.Tweet
+	params           map[string]string
 }
 
 func newUserAuthorizer(
 	conf config.Config,
 	userAccessToken accounts.TwitterUserAccessToken,
 	userAccessSecret accounts.TwitterUserAccessSecret,
-	tweet domain.Tweet,
+	params map[string]string,
 ) *userAuthorizer {
+	if params == nil {
+		params = make(map[string]string)
+	}
+
 	return &userAuthorizer{
 		conf:             conf,
 		userAccessToken:  userAccessToken,
 		userAccessSecret: userAccessSecret,
-		tweet:            tweet,
+		params:           params,
 	}
 }
 
@@ -104,6 +153,6 @@ func (a *userAuthorizer) Add(req *http.Request) {
 		AccessSecret:   a.userAccessSecret.String(),
 	}
 
-	authHeader := auth.BuildOAuth1Header(req.Method, req.URL.String(), map[string]string{})
+	authHeader := auth.BuildOAuth1Header(req.Method, req.URL.String(), a.params)
 	req.Header.Set("Authorization", authHeader)
 }

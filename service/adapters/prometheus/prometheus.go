@@ -30,6 +30,10 @@ const (
 	labelResultValueSuccess              = "success"
 	labelResultValueError                = "error"
 	labelResultValueInvalidPointerPassed = "invalidPointerPassed"
+
+	labelAction               = "action"
+	labelActionValuePostTweet = "postTweet"
+	labelActionValueGetUser   = "getUser"
 )
 
 type Prometheus struct {
@@ -40,7 +44,7 @@ type Prometheus struct {
 	numberOfPublicKeyDownloadersGauge      prometheus.Gauge
 	numberOfPublicKeyDownloaderRelaysGauge *prometheus.GaugeVec
 	relayConnectionStateGauge              *prometheus.GaugeVec
-	twitterAPICallsToPostTweetCounter      *prometheus.CounterVec
+	twitterAPICallsCounter                 *prometheus.CounterVec
 
 	registry *prometheus.Registry
 
@@ -96,12 +100,12 @@ func NewPrometheus(logger logging.Logger) (*Prometheus, error) {
 		},
 		[]string{labelRelayAddress, labelState},
 	)
-	twitterAPICallsToPostTweetCounter := prometheus.NewCounterVec(
+	twitterAPICallsCounter := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "twitter_api_calls_to_post_tweet",
+			Name: "twitter_api_calls",
 			Help: "Total number of calls to Twitter API to post tweets.",
 		},
-		[]string{labelResult},
+		[]string{labelResult, labelAction},
 	)
 
 	reg := prometheus.NewRegistry()
@@ -113,7 +117,7 @@ func NewPrometheus(logger logging.Logger) (*Prometheus, error) {
 		numberOfPublicKeyDownloadersGauge,
 		numberOfPublicKeyDownloaderRelaysGauge,
 		relayConnectionStateGauge,
-		twitterAPICallsToPostTweetCounter,
+		twitterAPICallsCounter,
 
 		collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}),
 		collectors.NewGoCollector(),
@@ -145,7 +149,7 @@ func NewPrometheus(logger logging.Logger) (*Prometheus, error) {
 		numberOfPublicKeyDownloadersGauge:      numberOfPublicKeyDownloadersGauge,
 		numberOfPublicKeyDownloaderRelaysGauge: numberOfPublicKeyDownloaderRelaysGauge,
 		relayConnectionStateGauge:              relayConnectionStateGauge,
-		twitterAPICallsToPostTweetCounter:      twitterAPICallsToPostTweetCounter,
+		twitterAPICallsCounter:                 twitterAPICallsCounter,
 
 		registry: reg,
 
@@ -185,13 +189,27 @@ func (p *Prometheus) ReportRelayConnectionState(relayAddress domain.RelayAddress
 }
 
 func (p *Prometheus) ReportCallingTwitterAPIToPostATweet(err error) {
-	var labels prometheus.Labels
-	if err == nil {
-		labels = prometheus.Labels{labelResult: labelResultValueSuccess}
-	} else {
-		labels = prometheus.Labels{labelResult: labelResultValueError}
+	labels := prometheus.Labels{
+		labelAction: labelActionValuePostTweet,
 	}
-	p.twitterAPICallsToPostTweetCounter.With(labels).Inc()
+	if err == nil {
+		labels[labelResult] = labelResultValueSuccess
+	} else {
+		labels[labelResult] = labelResultValueError
+	}
+	p.twitterAPICallsCounter.With(labels).Inc()
+}
+
+func (p *Prometheus) ReportCallingTwitterAPIToGetAUser(err error) {
+	labels := prometheus.Labels{
+		labelAction: labelActionValueGetUser,
+	}
+	if err == nil {
+		labels[labelResult] = labelResultValueSuccess
+	} else {
+		labels[labelResult] = labelResultValueError
+	}
+	p.twitterAPICallsCounter.With(labels).Inc()
 }
 
 func (p *Prometheus) ReportSubscriptionQueueLength(topic string, n int) {

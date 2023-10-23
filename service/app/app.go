@@ -73,6 +73,12 @@ type Twitter interface {
 		userAccessSecret accounts.TwitterUserAccessSecret,
 		tweet domain.Tweet,
 	) error
+
+	GetAccountDetails(
+		ctx context.Context,
+		userAccessToken accounts.TwitterUserAccessToken,
+		userAccessSecret accounts.TwitterUserAccessSecret,
+	) (TwitterAccountDetails, error)
 }
 
 type Adapters struct {
@@ -85,8 +91,9 @@ type Adapters struct {
 }
 
 type Application struct {
-	GetSessionAccount    *GetSessionAccountHandler
-	GetAccountPublicKeys *GetAccountPublicKeysHandler
+	GetSessionAccount        *GetSessionAccountHandler
+	GetAccountPublicKeys     *GetAccountPublicKeysHandler
+	GetTwitterAccountDetails *GetTwitterAccountDetailsHandler
 
 	LoginOrRegister *LoginOrRegisterHandler
 	LinkPublicKey   *LinkPublicKeyHandler
@@ -119,6 +126,7 @@ type Metrics interface {
 	ReportNumberOfPublicKeyDownloaderRelays(publicKey domain.PublicKey, n int)
 	ReportRelayConnectionState(relayAddress domain.RelayAddress, state RelayConnectionState)
 	ReportCallingTwitterAPIToPostATweet(err error)
+	ReportCallingTwitterAPIToGetAUser(err error)
 	ReportSubscriptionQueueLength(topic string, n int)
 }
 
@@ -142,4 +150,36 @@ type RelayConnectionState struct {
 
 func (r RelayConnectionState) String() string {
 	return r.s
+}
+
+type TwitterAccountDetails struct {
+	name            string
+	username        string
+	profileImageURL string
+}
+
+func NewTwitterAccountDetails(name string, username string, profileImageURL string) (TwitterAccountDetails, error) {
+	if name == "" {
+		return TwitterAccountDetails{}, errors.New("name can't be empty")
+	}
+	if username == "" {
+		return TwitterAccountDetails{}, errors.New("username can't be empty")
+	}
+	return TwitterAccountDetails{
+		name:            name,
+		username:        username,
+		profileImageURL: profileImageURL,
+	}, nil
+}
+
+func (t TwitterAccountDetails) Name() string {
+	return t.name
+}
+
+func (t TwitterAccountDetails) Username() string {
+	return t.username
+}
+
+func (t TwitterAccountDetails) ProfileImageURL() string {
+	return t.profileImageURL
 }

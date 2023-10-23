@@ -154,6 +154,12 @@ func (s *Server) apiCurrentUser(r *http.Request) rest.RestResponse {
 		return rest.ErrInternalServerError
 	}
 
+	twitterAccountDetails, err := s.app.GetTwitterAccountDetails.Handle(r.Context(), app.NewGetTwitterAccountDetails(account.AccountID()))
+	if err != nil {
+		s.logger.Error().WithError(err).Message("error getting twitter account details")
+		return rest.ErrInternalServerError
+	}
+
 	if account == nil {
 		return rest.NewResponse(
 			currentUserResponse{
@@ -164,7 +170,7 @@ func (s *Server) apiCurrentUser(r *http.Request) rest.RestResponse {
 
 	return rest.NewResponse(
 		currentUserResponse{
-			User: internal.Pointer(newTransportUser(*account)),
+			User: internal.Pointer(newTransportUser(*account, twitterAccountDetails)),
 		},
 	)
 }
@@ -274,14 +280,20 @@ type publicKeysAddRequest struct {
 }
 
 type transportUser struct {
-	AccountID string `json:"accountID"`
-	TwitterID int64  `json:"twitterID"`
+	AccountID              string `json:"accountID"`
+	TwitterID              int64  `json:"twitterID"`
+	TwitterName            string `json:"twitterName"`
+	TwitterUsername        string `json:"twitterUsername"`
+	TwitterProfileImageURL string `json:"twitterProfileImageURL"`
 }
 
-func newTransportUser(account accounts.Account) transportUser {
+func newTransportUser(account accounts.Account, twitterAccountDetails app.TwitterAccountDetails) transportUser {
 	return transportUser{
-		AccountID: account.AccountID().String(),
-		TwitterID: account.TwitterID().Int64(),
+		AccountID:              account.AccountID().String(),
+		TwitterID:              account.TwitterID().Int64(),
+		TwitterName:            twitterAccountDetails.Name(),
+		TwitterUsername:        twitterAccountDetails.Username(),
+		TwitterProfileImageURL: twitterAccountDetails.ProfileImageURL(),
 	}
 }
 

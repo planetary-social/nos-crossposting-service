@@ -72,7 +72,7 @@ var adaptersSet = wire.NewSet(
 	wire.Bind(new(app.RelayEventDownloader), new(*adapters.RelayEventDownloader)),
 
 	twitter.NewTwitter,
-	twitter.NewNoopTwitter,
+	twitter.NewNoopOnWriteTwitter,
 	selectTwitterAdapterDependingOnConfig,
 )
 
@@ -103,11 +103,11 @@ func newSqliteDB(conf config.Config, logger logging.Logger) (*sql.DB, func(), er
 
 func selectTwitterAdapterDependingOnConfig(
 	conf config.Config,
-	realAdapter *twitter.Twitter,
-	noopAdapter *twitter.NoopTwitter,
+	productionAdapter *twitter.Twitter,
+	developmentAdapter *twitter.NoopOnWriteTwitter,
 ) app.Twitter {
 	if conf.Environment() == config.EnvironmentDevelopment {
-		return noopAdapter
+		return developmentAdapter
 	}
-	return realAdapter
+	return productionAdapter
 }
