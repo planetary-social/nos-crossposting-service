@@ -186,10 +186,6 @@ button {
   .input {
     width: 500px;
   }
-
-  .button {
-
-  }
 }
 
 @media screen and (max-width: 1200px) {
@@ -203,13 +199,15 @@ button {
 
   .link-npub-form {
     display: flex;
+    flex-flow: column nowrap;
 
     .input {
-      flex: 1;
+      width: auto;
     }
 
     .button {
-
+      width: auto;
+      margin: 1em 0;
     }
   }
 }
