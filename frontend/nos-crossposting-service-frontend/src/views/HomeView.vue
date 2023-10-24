@@ -36,10 +36,12 @@
       </ul>
     </div>
 
-    <form>
-      <Input placeholder="Paste your npub address" v-model="npub"></Input>
-      <Button text="Add" @click="addPublicKey"></Button>
-    </form>
+    <div class="link-npub-form">
+      <Input placeholder="Paste your npub address" v-model="npub"
+             :disabled="formDisabled"></Input>
+      <Button text="Add" @click="addPublicKey"
+              :disabled="formDisabled"></Button>
+    </div>
   </div>
 </template>
 
@@ -84,6 +86,10 @@ export default class HomeView extends Vue {
     return this.store.state.user;
   }
 
+  get formDisabled(): boolean {
+    return this.loadingUser || !this.user;
+  }
+
   created() {
     this.apiService.publicKeys()
         .then(response => {
@@ -94,9 +100,11 @@ export default class HomeView extends Vue {
   addPublicKey(): void {
     this.apiService.addPublicKey(new AddPublicKeyRequest(this.npub))
         .then(response => {
+          // todo reload
           console.log("added", response);
         })
         .catch(error => {
+          // todo show better error
           console.log("error", error);
         })
   }
@@ -107,9 +115,10 @@ export default class HomeView extends Vue {
 .step {
   font-size: 28px;
   margin-top: 2em;
+  font-weight: 700;
 }
 
-form, .public-keys-wrapper {
+.link-npub-form, .public-keys-wrapper {
   margin: 28px 0;
 }
 
