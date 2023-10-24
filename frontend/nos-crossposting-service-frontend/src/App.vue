@@ -1,9 +1,9 @@
 <template>
   <div class="wrapper">
     <Header></Header>
-
-    {{ user }}
-    <router-view/>
+    <div class="content">
+      <router-view/>
+    </div>
   </div>
 </template>
 
@@ -65,6 +65,10 @@ body {
 #app {
   .wrapper {
     padding: 4em;
+
+    .content {
+      padding: 0 4em;
+    }
   }
 }
 </style>

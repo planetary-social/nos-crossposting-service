@@ -52,6 +52,7 @@ export default class CurrentUser extends Vue {
     border: 3px solid #9379BF;
     gap: 5px 20px;
     padding: 20px;
+    background-color: #2A1B45;
 
     .image {
       grid-area: image;

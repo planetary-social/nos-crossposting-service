@@ -1,6 +1,6 @@
 <template>
   <header>
-    <a class="logo">
+    <a class="logo" href="/">
       <img src="../assets/logo.svg"/>
     </a>
     <nav>

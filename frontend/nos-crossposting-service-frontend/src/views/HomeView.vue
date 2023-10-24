@@ -139,16 +139,16 @@ button {
     font-style: normal;
     font-weight: 700;
 
+    display: flex;
+    align-items: center;
+    flex-flow: row nowrap;
+
     &:first-child {
       margin-top: 0;
     }
 
     &:last-child {
       margin-bottom: 0;
-    }
-
-    .npub, .checkmark {
-      display: inline-block;
     }
 
     .npub {

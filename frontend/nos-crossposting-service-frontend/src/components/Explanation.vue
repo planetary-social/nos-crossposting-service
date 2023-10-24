@@ -27,6 +27,7 @@ export default class Explanation extends Vue {
     font-size: 60px;
     line-height: 84px;
     font-weight: 700;
+    margin-bottom: .5em;
   }
 
   .small {
