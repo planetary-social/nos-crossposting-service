@@ -2,6 +2,7 @@
   <div class="wrapper">
     <Header></Header>
     <div class="content">
+      <Notifications></Notifications>
       <router-view/>
     </div>
   </div>
@@ -78,18 +79,24 @@ import {Options, Vue} from 'vue-class-component';
 import {useStore} from "vuex";
 import {APIService} from "@/services/APIService";
 import Header from "@/components/Header.vue";
+import Notifications from "@/components/Notifications.vue";
+import {Mutation} from "@/store";
 
 @Options({
   components: {
+    Notifications,
     Header,
   }
 })
 export default class App extends Vue {
-
   private readonly apiService = new APIService(useStore());
+  private readonly store = useStore();
 
   created(): void {
     this.apiService.refreshCurrentUser()
+        .catch(() => {
+          this.store.commit(Mutation.PushNotificationError, "Error loading the user.");
+        });
   }
 }
 </script>

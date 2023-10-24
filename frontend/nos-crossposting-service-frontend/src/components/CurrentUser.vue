@@ -18,6 +18,7 @@ import {User} from "@/dto/User";
 import Checkmark from "@/components/Checkmark.vue";
 import {APIService} from "@/services/APIService";
 import {useStore} from "vuex";
+import {Mutation} from "@/store";
 
 @Options({
   components: {Checkmark},
@@ -29,9 +30,13 @@ export default class CurrentUser extends Vue {
   user!: User
 
   private readonly apiService = new APIService(useStore())
+  private readonly store = useStore();
 
   logout(): void {
-    this.apiService.logoutCurrentUser();
+    this.apiService.logoutCurrentUser()
+        .catch(() => {
+          this.store.commit(Mutation.PushNotificationError, "Error logging out the user.");
+        });
   }
 }
 </script>

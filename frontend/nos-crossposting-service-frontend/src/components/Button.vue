@@ -15,7 +15,7 @@ export default class Button extends Vue {
   text!: string;
   disabled!: boolean;
 
-  onClick(event: any): void {
+  onClick(event: Event): void {
     this.$emit('click', event)
   }
 }

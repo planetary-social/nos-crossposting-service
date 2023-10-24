@@ -33,11 +33,10 @@ export class APIService {
     }
 
     logoutCurrentUser(): Promise<void> {
-        const url = `/api/current-user`;
         return new Promise((resolve, reject) => {
-            this.axios.delete<void>(url)
+            this.logout()
                 .then(
-                    response => {
+                    () => {
                         this.store.commit(Mutation.SetUser, null);
                         resolve();
                     },

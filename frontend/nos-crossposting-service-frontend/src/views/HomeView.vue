@@ -58,6 +58,7 @@ import {AddPublicKeyRequest} from "@/dto/AddPublicKeyRequest";
 import Input from "@/components/Input.vue";
 import Button from "@/components/Button.vue";
 import Checkmark from "@/components/Checkmark.vue";
+import {Mutation} from "@/store";
 
 
 @Options({
@@ -100,10 +101,9 @@ export default class HomeView extends Vue {
           this.npub = "";
           this.reloadPublicKeys();
         })
-        .catch(error => {
-          // todo show better error
-          console.log("error", error);
-        })
+        .catch(() => {
+          this.store.commit(Mutation.PushNotificationError, "Error adding the public key.");
+        });
   }
 
   private reloadPublicKeys(): void {
@@ -112,9 +112,9 @@ export default class HomeView extends Vue {
         .then(response => {
           this.publicKeys = response.data;
         })
-        .catch(error => {
-          console.log(error);
-        })
+        .catch(() => {
+          this.store.commit(Mutation.PushNotificationError, "Error loading the public keys.");
+        });
   }
 }
 </script>

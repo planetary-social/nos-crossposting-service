@@ -11,13 +11,18 @@
 import {Options, Vue} from 'vue-class-component';
 import {APIService} from "@/services/APIService";
 import {useStore} from "vuex";
+import {Mutation} from "@/store";
 
 @Options({})
 export default class LogOutButton extends Vue {
   private readonly apiService = new APIService(useStore());
+  private readonly store = useStore();
 
   logout(): void {
     this.apiService.logoutCurrentUser()
+        .catch(() => {
+          this.store.commit(Mutation.PushNotificationError, "Error logging out the user.");
+        });
   }
 
 }
