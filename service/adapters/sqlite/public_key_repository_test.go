@@ -120,3 +120,84 @@ func TestPublicKeyRepository_ListByPublicKeyReturnsOnlyRelevantData(t *testing.T
 	})
 	require.NoError(t, err)
 }
+
+func TestPublicKeyRepository_DeletingNonExistentKeyDoesNotReturnAnError(t *testing.T) {
+	ctx := fixtures.TestContext(t)
+	adapters := NewTestAdapters(ctx, t)
+
+	err := adapters.TransactionProvider.Transact(ctx, func(ctx context.Context, adapters sqlite.TestAdapters) error {
+		err := adapters.PublicKeyRepository.Delete(fixtures.SomeAccountID(), fixtures.SomePublicKey())
+		require.NoError(t, err)
+
+		return nil
+	})
+	require.NoError(t, err)
+}
+
+func TestPublicKeyRepository_DeletingPublicKeysDeletesThem(t *testing.T) {
+	ctx := fixtures.TestContext(t)
+	adapters := NewTestAdapters(ctx, t)
+
+	accountID := fixtures.SomeAccountID()
+	twitterID := fixtures.SomeTwitterID()
+
+	account, err := accounts.NewAccount(accountID, twitterID)
+	require.NoError(t, err)
+
+	err = adapters.TransactionProvider.Transact(ctx, func(ctx context.Context, adapters sqlite.TestAdapters) error {
+		err = adapters.AccountRepository.Save(account)
+		require.NoError(t, err)
+
+		return nil
+	})
+	require.NoError(t, err)
+
+	createdAt := time.Now()
+	publicKey1 := fixtures.SomePublicKey()
+	publicKey2 := fixtures.SomePublicKey()
+
+	linkedPublicKey1, err := domain.NewLinkedPublicKey(accountID, publicKey1, createdAt)
+	require.NoError(t, err)
+
+	linkedPublicKey2, err := domain.NewLinkedPublicKey(accountID, publicKey2, createdAt)
+	require.NoError(t, err)
+
+	err = adapters.TransactionProvider.Transact(ctx, func(ctx context.Context, adapters sqlite.TestAdapters) error {
+		err = adapters.PublicKeyRepository.Save(linkedPublicKey1)
+		require.NoError(t, err)
+
+		err = adapters.PublicKeyRepository.Save(linkedPublicKey2)
+		require.NoError(t, err)
+
+		return nil
+	})
+	require.NoError(t, err)
+
+	err = adapters.TransactionProvider.Transact(ctx, func(ctx context.Context, adapters sqlite.TestAdapters) error {
+		results, err := adapters.PublicKeyRepository.ListByAccountID(accountID)
+		require.NoError(t, err)
+
+		require.Len(t, results, 2)
+
+		return nil
+	})
+	require.NoError(t, err)
+
+	err = adapters.TransactionProvider.Transact(ctx, func(ctx context.Context, adapters sqlite.TestAdapters) error {
+		err := adapters.PublicKeyRepository.Delete(accountID, publicKey1)
+		require.NoError(t, err)
+
+		return nil
+	})
+	require.NoError(t, err)
+
+	err = adapters.TransactionProvider.Transact(ctx, func(ctx context.Context, adapters sqlite.TestAdapters) error {
+		results, err := adapters.PublicKeyRepository.ListByAccountID(accountID)
+		require.NoError(t, err)
+
+		require.Len(t, results, 1)
+
+		return nil
+	})
+	require.NoError(t, err)
+}

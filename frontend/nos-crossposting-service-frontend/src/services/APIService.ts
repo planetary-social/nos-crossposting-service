@@ -4,6 +4,7 @@ import {Mutation, State} from '@/store';
 import {PublicKeys} from "@/dto/PublicKeys";
 import {AddPublicKeyRequest} from "@/dto/AddPublicKeyRequest";
 import {Store} from "vuex";
+import {PublicKey} from "@/dto/PublicKey";
 
 export class APIService {
 
@@ -23,13 +24,18 @@ export class APIService {
     }
 
     publicKeys(): Promise<AxiosResponse<PublicKeys>> {
-        const url = `/api/public-keys`;
+        const url = `/api/current-user/public-keys`;
         return this.axios.get<PublicKeys>(url);
     }
 
     addPublicKey(req: AddPublicKeyRequest): Promise<AxiosResponse<void>> {
-        const url = `/api/public-keys`;
+        const url = `/api/current-user/public-keys`;
         return this.axios.post<void>(url, req);
+    }
+
+    deletePublicKey(publicKey: PublicKey): Promise<AxiosResponse<void>> {
+        const url = `/api/current-user/public-keys/${publicKey.npub}`;
+        return this.axios.delete<void>(url);
     }
 
     logoutCurrentUser(): Promise<void> {

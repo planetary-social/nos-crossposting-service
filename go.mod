@@ -12,6 +12,7 @@ require (
 	github.com/dghubble/oauth1 v0.7.2
 	github.com/g8rswimmer/go-twitter/v2 v2.1.5
 	github.com/google/wire v0.5.0
+	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/websocket v1.5.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/klaidas/go-oauth1 v0.0.0-20190306224042-169193bf805e

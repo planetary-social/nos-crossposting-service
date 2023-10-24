@@ -13,6 +13,7 @@ import (
 	"github.com/dghubble/gologin/v2/twitter"
 	"github.com/dghubble/oauth1"
 	twitterOAuth1 "github.com/dghubble/oauth1/twitter"
+	"github.com/gorilla/mux"
 	"github.com/planetary-social/nos-crossposting-service/internal"
 	"github.com/planetary-social/nos-crossposting-service/internal/logging"
 	"github.com/planetary-social/nos-crossposting-service/service/app"
@@ -22,7 +23,9 @@ import (
 	"github.com/planetary-social/nos-crossposting-service/service/ports/http/frontend"
 )
 
-const loginCallbackPath = `/login-callback`
+const (
+	loginCallbackPath = "/login-callback"
+)
 
 type Server struct {
 	conf               config.Config
@@ -46,8 +49,6 @@ func NewServer(
 }
 
 func (s *Server) ListenAndServe(ctx context.Context) error {
-	mux := s.createMux()
-
 	var listenConfig net.ListenConfig
 	listener, err := listenConfig.Listen(ctx, "tcp", s.conf.ListenAddress())
 	if err != nil {
@@ -66,10 +67,11 @@ func (s *Server) ListenAndServe(ctx context.Context) error {
 		}
 	}()
 
-	return http.Serve(listener, mux)
+	m := s.createMux()
+	return http.Serve(listener, m)
 }
 
-func (s *Server) createMux() *http.ServeMux {
+func (s *Server) createMux() *mux.Router {
 	config := &oauth1.Config{
 		ConsumerKey:    s.conf.TwitterKey(),
 		ConsumerSecret: s.conf.TwitterKeySecret(),
@@ -77,14 +79,14 @@ func (s *Server) createMux() *http.ServeMux {
 		Endpoint:       twitterOAuth1.AuthorizeEndpoint,
 	}
 
-	mux := http.NewServeMux()
-	mux.Handle("/", http.FileServer(s.frontendFileSystem))
-	mux.Handle("/login", twitter.LoginHandler(config, nil))
-	mux.HandleFunc("/api/current-user", rest.Wrap(s.apiCurrentUser))
-	mux.HandleFunc("/api/public-keys", rest.Wrap(s.apiPublicKeys))
-	mux.Handle(loginCallbackPath, twitter.CallbackHandler(config, s.issueSession(), nil))
-
-	return mux
+	m := mux.NewRouter()
+	m.Handle("/login", twitter.LoginHandler(config, nil))
+	m.HandleFunc("/api/current-user", rest.Wrap(s.apiCurrentUser))
+	m.HandleFunc("/api/current-user/public-keys", rest.Wrap(s.apiPublicKeys))
+	m.HandleFunc("/api/current-user/public-keys/{npub}", rest.Wrap(s.apiPublicKeysDelete))
+	m.Handle(loginCallbackPath, twitter.CallbackHandler(config, s.issueSession(), nil))
+	m.NotFoundHandler = http.FileServer(s.frontendFileSystem)
+	return m
 }
 
 func (s *Server) twitterLoginCallbackURL() string {
@@ -269,6 +271,33 @@ func (s *Server) apiPublicKeysAdd(r *http.Request) rest.RestResponse {
 
 	if err := s.app.LinkPublicKey.Handle(ctx, cmd); err != nil {
 		s.logger.Error().WithError(err).Message("error adding a public key")
+		return rest.ErrInternalServerError
+	}
+
+	return rest.NewResponse(nil)
+}
+
+func (s *Server) apiPublicKeysDelete(r *http.Request) rest.RestResponse {
+	vars := mux.Vars(r)
+
+	publicKey, err := domain.NewPublicKeyFromNpub(vars["npub"])
+	if err != nil {
+		s.logger.Error().WithError(err).Message("error creating a public key")
+		return rest.ErrBadRequest
+	}
+
+	account, err := s.getAccountFromRequest(r)
+	if err != nil {
+		s.logger.Error().WithError(err).Message("error getting account from request")
+		return rest.ErrInternalServerError
+	}
+
+	if account == nil {
+		return rest.ErrUnauthorized
+	}
+
+	if err := s.app.UnlinkPublicKey.Handle(r.Context(), app.NewUnlinkPublicKey(account.AccountID(), publicKey)); err != nil {
+		s.logger.Error().WithError(err).Message("error deleting a public key")
 		return rest.ErrInternalServerError
 	}
 

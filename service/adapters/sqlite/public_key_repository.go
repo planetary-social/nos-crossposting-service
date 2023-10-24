@@ -34,6 +34,21 @@ func (m *PublicKeyRepository) Save(linkedPublicKey *domain.LinkedPublicKey) erro
 	return nil
 }
 
+func (m *PublicKeyRepository) Delete(accountID accounts.AccountID, publicKey domain.PublicKey) error {
+	_, err := m.tx.Exec(`
+DELETE FROM public_keys
+WHERE account_id = $1 AND public_key = $2
+`,
+		accountID.String(),
+		publicKey.Hex(),
+	)
+	if err != nil {
+		return errors.Wrap(err, "error executing the delete query")
+	}
+
+	return nil
+}
+
 func (m *PublicKeyRepository) List() ([]*domain.LinkedPublicKey, error) {
 	rows, err := m.tx.Query(`
 SELECT account_id, public_key, created_at

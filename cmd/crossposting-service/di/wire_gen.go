@@ -62,6 +62,7 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 	loginOrRegisterHandler := app.NewLoginOrRegisterHandler(genericTransactionProvider, idGenerator, idGenerator, logger, prometheusPrometheus)
 	logoutHandler := app.NewLogoutHandler(genericTransactionProvider, logger, prometheusPrometheus)
 	linkPublicKeyHandler := app.NewLinkPublicKeyHandler(genericTransactionProvider, logger, prometheusPrometheus)
+	unlinkPublicKeyHandler := app.NewUnlinkPublicKeyHandler(genericTransactionProvider, logger, prometheusPrometheus)
 	application := app.Application{
 		GetSessionAccount:        getSessionAccountHandler,
 		GetAccountPublicKeys:     getAccountPublicKeysHandler,
@@ -69,6 +70,7 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 		LoginOrRegister:          loginOrRegisterHandler,
 		Logout:                   logoutHandler,
 		LinkPublicKey:            linkPublicKeyHandler,
+		UnlinkPublicKey:          unlinkPublicKeyHandler,
 	}
 	frontendFileSystem, err := frontend.NewFrontendFileSystem()
 	if err != nil {

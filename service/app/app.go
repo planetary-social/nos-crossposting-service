@@ -45,6 +45,7 @@ type SessionRepository interface {
 
 type PublicKeyRepository interface {
 	Save(linkedPublicKey *domain.LinkedPublicKey) error
+	Delete(accountID accounts.AccountID, publicKey domain.PublicKey) error
 	List() ([]*domain.LinkedPublicKey, error)
 	ListByPublicKey(publicKey domain.PublicKey) ([]*domain.LinkedPublicKey, error)
 	ListByAccountID(accountID accounts.AccountID) ([]*domain.LinkedPublicKey, error)
@@ -104,6 +105,7 @@ type Application struct {
 	LoginOrRegister *LoginOrRegisterHandler
 	Logout          *LogoutHandler
 	LinkPublicKey   *LinkPublicKeyHandler
+	UnlinkPublicKey *UnlinkPublicKeyHandler
 }
 
 type ReceivedEvent struct {

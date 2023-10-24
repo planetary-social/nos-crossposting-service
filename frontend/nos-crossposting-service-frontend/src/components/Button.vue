@@ -16,7 +16,9 @@ export default class Button extends Vue {
   disabled!: boolean;
 
   onClick(event: Event): void {
-    this.$emit('click', event)
+    if (!this.disabled) {
+      this.$emit('buttonClick', event)
+    }
   }
 }
 </script>
