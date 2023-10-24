@@ -97,6 +97,7 @@ export default class HomeView extends Vue {
   addPublicKey(): void {
     this.apiService.addPublicKey(new AddPublicKeyRequest(this.npub))
         .then(() => {
+          this.npub = "";
           this.reloadPublicKeys();
         })
         .catch(error => {
