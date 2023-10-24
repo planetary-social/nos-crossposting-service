@@ -1,5 +1,5 @@
 <template>
-  <input type="text" :placeholder="placeholder" :value="modelValue"
+  <input type="text" :placeholder="placeholder" :value="modelValue" class="input"
          @input="onInput" :class="{ disabled: disabled }" :disabled="disabled">
 </template>
 
@@ -33,7 +33,6 @@ input {
   border: 3px solid #fff;
   padding: 30px;
   background-color: #1B122D;
-  min-width: 500px;
   font-weight: 700;
   font-size: 32px;
   line-height: 32px;

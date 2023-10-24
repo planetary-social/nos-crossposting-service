@@ -1,5 +1,5 @@
 <template>
-  <button @click="onClick" :class="{ disabled: disabled }">{{ text }}</button>
+  <button @click="onClick" :class="{ button: true, disabled: disabled }">{{ text }}</button>
 </template>
 
 <script lang="ts">

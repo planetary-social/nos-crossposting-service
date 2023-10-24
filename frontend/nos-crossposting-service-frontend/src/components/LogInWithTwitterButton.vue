@@ -28,6 +28,7 @@ a {
 
     img {
       display: block;
+      margin: 0 auto;
       height: 52px;
     }
   }

@@ -72,6 +72,16 @@ body {
     }
   }
 }
+
+@media screen and (max-width: 1200px) {
+  #app {
+    .wrapper {
+      .content {
+        padding: 0;
+      }
+    }
+  }
+}
 </style>
 
 <script lang="ts">

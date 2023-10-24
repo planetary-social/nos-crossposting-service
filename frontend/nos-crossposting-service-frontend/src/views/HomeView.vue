@@ -143,6 +143,10 @@ button {
   margin-left: 1em;
 }
 
+.current-user {
+  width: 550px;
+}
+
 .public-keys {
   list-style-type: none;
   font-size: 28px;
@@ -172,6 +176,40 @@ button {
       width: 300px;
       overflow: hidden;
       text-overflow: ellipsis;
+    }
+  }
+}
+
+.link-npub-form {
+  display: flex;
+
+  .input {
+    width: 500px;
+  }
+
+  .button {
+
+  }
+}
+
+@media screen and (max-width: 1200px) {
+  .current-user {
+    width: 100%;
+  }
+
+  .log-in-with-twitter-button {
+    display: block;
+  }
+
+  .link-npub-form {
+    display: flex;
+
+    .input {
+      flex: 1;
+    }
+
+    .button {
+
     }
   }
 }

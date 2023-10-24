@@ -84,4 +84,28 @@ header {
     margin-left: 1em;
   }
 }
+
+@media screen and (max-width: 1200px) {
+  header {
+    flex-flow: column nowrap;
+    text-align: center;
+
+    nav {
+      margin: 1em 0;
+      text-align: center;
+
+      ul {
+        li {
+          display: block;
+          padding: .5em 0;
+        }
+      }
+    }
+
+    .logout-button {
+      margin: 1em 0;
+    }
+  }
+}
+
 </style>

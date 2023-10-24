@@ -37,4 +37,10 @@ export default class Explanation extends Vue {
     line-height: 36px;
   }
 }
+
+@media screen and (max-width: 1200px) {
+  .explanation {
+    max-width: none;
+  }
+}
 </style>

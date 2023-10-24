@@ -44,7 +44,7 @@ export default class CurrentUser extends Vue {
 <style scoped lang="scss">
 .current-user {
   display: grid;
-  grid-template-columns: 500px 50px;
+  grid-template-columns: auto 50px;
   grid-template-rows: auto;
   grid-template-areas:
     "user-info checkmark";
