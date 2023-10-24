@@ -46,6 +46,7 @@
 </template>
 
 <script lang="ts">
+import {Watch} from 'vue-property-decorator'
 import {Options, Vue} from 'vue-class-component';
 import {useStore} from "vuex";
 import Explanation from '@/components/Explanation.vue';
@@ -91,8 +92,13 @@ export default class HomeView extends Vue {
     return this.loadingUser || !this.user;
   }
 
-  created() {
-    this.reloadPublicKeys();
+  @Watch('user')
+  watchUser(oldUser: CurrentUser, newUser: CurrentUser): void {
+    if (newUser) {
+      this.reloadPublicKeys();
+    } else {
+      this.publicKeys = {publicKeys: []};
+    }
   }
 
   addPublicKey(): void {
@@ -112,7 +118,10 @@ export default class HomeView extends Vue {
         .then(response => {
           this.publicKeys = response.data;
         })
-        .catch(() => {
+        .catch(error => {
+          if (error.response && error.response.status === 401) {
+            return;
+          }
           this.store.commit(Mutation.PushNotificationError, "Error loading the public keys.");
         });
   }
