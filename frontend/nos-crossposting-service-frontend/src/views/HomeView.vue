@@ -91,24 +91,28 @@ export default class HomeView extends Vue {
   }
 
   created() {
+    this.reloadPublicKeys();
+  }
+
+  addPublicKey(): void {
+    this.apiService.addPublicKey(new AddPublicKeyRequest(this.npub))
+        .then(() => {
+          this.reloadPublicKeys();
+        })
+        .catch(error => {
+          // todo show better error
+          console.log("error", error);
+        })
+  }
+
+  private reloadPublicKeys(): void {
+    this.publicKeys = null;
     this.apiService.publicKeys()
         .then(response => {
           this.publicKeys = response.data;
         })
         .catch(error => {
           console.log(error);
-        })
-  }
-
-  addPublicKey(): void {
-    this.apiService.addPublicKey(new AddPublicKeyRequest(this.npub))
-        .then(response => {
-          // todo reload
-          console.log("added", response);
-        })
-        .catch(error => {
-          // todo show better error
-          console.log("error", error);
         })
   }
 }
