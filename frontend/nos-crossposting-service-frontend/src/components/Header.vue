@@ -13,14 +13,24 @@
         </li>
       </ul>
     </nav>
+    <LogoutButton v-if="userIsLoggedIn"></LogoutButton>
   </header>
 </template>
 
 <script lang="ts">
 import {Options, Vue} from 'vue-class-component';
+import {useStore} from "vuex";
+import LogoutButton from "@/components/LogoutButton.vue";
 
-@Options({})
+@Options({
+  components: {LogoutButton}
+})
 export default class Header extends Vue {
+  private readonly store = useStore();
+
+  get userIsLoggedIn(): boolean {
+    return !!this.store.state.user;
+  }
 }
 </script>
 
@@ -59,6 +69,10 @@ header {
         }
       }
     }
+  }
+
+  .logout-button {
+    margin-left: 1em;
   }
 }
 </style>

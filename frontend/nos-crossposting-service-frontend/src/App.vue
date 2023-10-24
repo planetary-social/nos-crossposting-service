@@ -88,11 +88,7 @@ export default class App extends Vue {
 
   private readonly apiService = new APIService(useStore());
 
-  created() {
-    this.loadCurrentUser();
-  }
-
-  private loadCurrentUser(): void {
+  created(): void {
     this.apiService.refreshCurrentUser()
   }
 }

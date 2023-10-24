@@ -148,6 +148,17 @@ func (s *Server) issueSessionErr(w http.ResponseWriter, req *http.Request) error
 }
 
 func (s *Server) apiCurrentUser(r *http.Request) rest.RestResponse {
+	switch r.Method {
+	case http.MethodGet:
+		return s.apiCurrentUserGet(r)
+	case http.MethodDelete:
+		return s.apiCurrentUserDelete(r)
+	default:
+		return rest.ErrMethodNotAllowed
+	}
+}
+
+func (s *Server) apiCurrentUserGet(r *http.Request) rest.RestResponse {
 	account, err := s.getAccountFromRequest(r)
 	if err != nil {
 		s.logger.Error().WithError(err).Message("error getting account from request")
@@ -173,6 +184,25 @@ func (s *Server) apiCurrentUser(r *http.Request) rest.RestResponse {
 			User: internal.Pointer(newTransportUser(*account, twitterAccountDetails)),
 		},
 	)
+}
+
+func (s *Server) apiCurrentUserDelete(r *http.Request) rest.RestResponse {
+	sessionID, err := GetSessionIDFromCookie(r)
+	if err != nil {
+		if errors.Is(err, ErrNoSessionID) {
+			return rest.NewResponse(nil)
+		}
+
+		s.logger.Error().WithError(err).Message("error getting id session from cookie")
+		return rest.ErrInternalServerError
+	}
+
+	if err := s.app.Logout.Handle(r.Context(), app.NewLogout(sessionID)); err != nil {
+		s.logger.Error().WithError(err).Message("error calling logout handler")
+		return rest.ErrInternalServerError
+	}
+
+	return rest.NewResponse(nil)
 }
 
 func (s *Server) apiPublicKeys(r *http.Request) rest.RestResponse {

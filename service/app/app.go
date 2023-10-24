@@ -39,6 +39,8 @@ type SessionRepository interface {
 	Get(id sessions.SessionID) (*sessions.Session, error)
 
 	Save(session *sessions.Session) error
+
+	Delete(id sessions.SessionID) error
 }
 
 type PublicKeyRepository interface {
@@ -100,6 +102,7 @@ type Application struct {
 	GetTwitterAccountDetails *GetTwitterAccountDetailsHandler
 
 	LoginOrRegister *LoginOrRegisterHandler
+	Logout          *LogoutHandler
 	LinkPublicKey   *LinkPublicKeyHandler
 }
 

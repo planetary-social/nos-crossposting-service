@@ -4,7 +4,7 @@
       <img class="image" :src="user?.twitterProfileImageURL">
       <div class="name">{{ user.twitterName }}</div>
       <div class="username">@{{ user.twitterUsername }}</div>
-      <a class="logout-button">
+      <a class="logout-button" @click="logout">
         <img src="../assets/logout_on_dark.svg">
       </a>
     </div>
@@ -16,6 +16,8 @@
 import {Options, Vue} from 'vue-class-component';
 import {User} from "@/dto/User";
 import Checkmark from "@/components/Checkmark.vue";
+import {APIService} from "@/services/APIService";
+import {useStore} from "vuex";
 
 @Options({
   components: {Checkmark},
@@ -25,6 +27,12 @@ import Checkmark from "@/components/Checkmark.vue";
 })
 export default class CurrentUser extends Vue {
   user!: User
+
+  private readonly apiService = new APIService(useStore())
+
+  logout(): void {
+    this.apiService.logoutCurrentUser();
+  }
 }
 </script>
 
@@ -79,6 +87,7 @@ export default class CurrentUser extends Vue {
 
     .logout-button {
       grid-area: logout-button;
+      cursor: pointer;
     }
   }
 

@@ -60,12 +60,14 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 	getTwitterAccountDetailsHandler := app.NewGetTwitterAccountDetailsHandler(genericTransactionProvider, appTwitter, twitterAccountDetailsCache, logger, prometheusPrometheus)
 	idGenerator := adapters.NewIDGenerator()
 	loginOrRegisterHandler := app.NewLoginOrRegisterHandler(genericTransactionProvider, idGenerator, idGenerator, logger, prometheusPrometheus)
+	logoutHandler := app.NewLogoutHandler(genericTransactionProvider, logger, prometheusPrometheus)
 	linkPublicKeyHandler := app.NewLinkPublicKeyHandler(genericTransactionProvider, logger, prometheusPrometheus)
 	application := app.Application{
 		GetSessionAccount:        getSessionAccountHandler,
 		GetAccountPublicKeys:     getAccountPublicKeysHandler,
 		GetTwitterAccountDetails: getTwitterAccountDetailsHandler,
 		LoginOrRegister:          loginOrRegisterHandler,
+		Logout:                   logoutHandler,
 		LinkPublicKey:            linkPublicKeyHandler,
 	}
 	frontendFileSystem, err := frontend.NewFrontendFileSystem()

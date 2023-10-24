@@ -12,9 +12,14 @@ export class APIService {
     constructor(private store: Store<State>) {
     }
 
-    currentUser(): Promise<AxiosResponse<CurrentUser>> {
+    private currentUser(): Promise<AxiosResponse<CurrentUser>> {
         const url = `/api/current-user`;
         return this.axios.get<CurrentUser>(url);
+    }
+
+    private logout(): Promise<AxiosResponse<void>> {
+        const url = `/api/current-user`;
+        return this.axios.delete<void>(url);
     }
 
     publicKeys(): Promise<AxiosResponse<PublicKeys>> {
@@ -25,6 +30,22 @@ export class APIService {
     addPublicKey(req: AddPublicKeyRequest): Promise<AxiosResponse<void>> {
         const url = `/api/public-keys`;
         return this.axios.post<void>(url, req);
+    }
+
+    logoutCurrentUser(): Promise<void> {
+        const url = `/api/current-user`;
+        return new Promise((resolve, reject) => {
+            this.axios.delete<void>(url)
+                .then(
+                    response => {
+                        this.store.commit(Mutation.SetUser, null);
+                        resolve();
+                    },
+                    error => {
+                        reject(error);
+                    },
+                );
+        });
     }
 
     refreshCurrentUser(): Promise<CurrentUser> {

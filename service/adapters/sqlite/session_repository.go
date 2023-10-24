@@ -49,6 +49,19 @@ ON CONFLICT(session_id) DO UPDATE SET
 	return nil
 }
 
+func (m *SessionRepository) Delete(id sessions.SessionID) error {
+	_, err := m.tx.Exec(`
+DELETE FROM sessions
+WHERE session_id=$1`,
+		id.String(),
+	)
+	if err != nil {
+		return errors.Wrap(err, "error calling exec")
+	}
+
+	return nil
+}
+
 func (m *SessionRepository) readSession(result *sql.Row) (*sessions.Session, error) {
 	var sessionIDTmp string
 	var accountIDTmp string
