@@ -6,10 +6,10 @@
     <nav>
       <ul>
         <li>
-          <a>Link 1</a>
+          <a href="https://nos.social">Download Nos</a>
         </li>
         <li>
-          <a>Link 2</a>
+          <a href="https://github.com/planetary-social/nos-crossposting-service">Source code</a>
         </li>
       </ul>
     </nav>
@@ -66,6 +66,15 @@ header {
 
         &:first-child {
           padding-left: 0;
+        }
+
+        a {
+          color: #9379BF;
+          text-decoration: none;
+
+          &:hover {
+            color: #fff;
+          }
         }
       }
     }
