@@ -154,18 +154,18 @@ func (s *Server) apiCurrentUser(r *http.Request) rest.RestResponse {
 		return rest.ErrInternalServerError
 	}
 
-	twitterAccountDetails, err := s.app.GetTwitterAccountDetails.Handle(r.Context(), app.NewGetTwitterAccountDetails(account.AccountID()))
-	if err != nil {
-		s.logger.Error().WithError(err).Message("error getting twitter account details")
-		return rest.ErrInternalServerError
-	}
-
 	if account == nil {
 		return rest.NewResponse(
 			currentUserResponse{
 				User: nil,
 			},
 		)
+	}
+
+	twitterAccountDetails, err := s.app.GetTwitterAccountDetails.Handle(r.Context(), app.NewGetTwitterAccountDetails(account.AccountID()))
+	if err != nil {
+		s.logger.Error().WithError(err).Message("error getting twitter account details")
+		return rest.ErrInternalServerError
 	}
 
 	return rest.NewResponse(

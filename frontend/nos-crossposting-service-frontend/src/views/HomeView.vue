@@ -95,6 +95,9 @@ export default class HomeView extends Vue {
         .then(response => {
           this.publicKeys = response.data;
         })
+        .catch(error => {
+          console.log(error);
+        })
   }
 
   addPublicKey(): void {

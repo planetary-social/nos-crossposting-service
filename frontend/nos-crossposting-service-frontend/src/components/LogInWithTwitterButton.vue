@@ -31,5 +31,11 @@ a {
       height: 52px;
     }
   }
+
+  &:hover {
+    .img-wrapper {
+      background-color: transparent;
+    }
+  }
 }
 </style>
