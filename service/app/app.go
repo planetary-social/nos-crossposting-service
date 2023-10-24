@@ -39,10 +39,13 @@ type SessionRepository interface {
 	Get(id sessions.SessionID) (*sessions.Session, error)
 
 	Save(session *sessions.Session) error
+
+	Delete(id sessions.SessionID) error
 }
 
 type PublicKeyRepository interface {
 	Save(linkedPublicKey *domain.LinkedPublicKey) error
+	Delete(accountID accounts.AccountID, publicKey domain.PublicKey) error
 	List() ([]*domain.LinkedPublicKey, error)
 	ListByPublicKey(publicKey domain.PublicKey) ([]*domain.LinkedPublicKey, error)
 	ListByAccountID(accountID accounts.AccountID) ([]*domain.LinkedPublicKey, error)
@@ -73,6 +76,16 @@ type Twitter interface {
 		userAccessSecret accounts.TwitterUserAccessSecret,
 		tweet domain.Tweet,
 	) error
+
+	GetAccountDetails(
+		ctx context.Context,
+		userAccessToken accounts.TwitterUserAccessToken,
+		userAccessSecret accounts.TwitterUserAccessSecret,
+	) (TwitterAccountDetails, error)
+}
+
+type TwitterAccountDetailsCache interface {
+	Get(accountID accounts.AccountID, updateFn func() (TwitterAccountDetails, error)) (TwitterAccountDetails, error)
 }
 
 type Adapters struct {
@@ -85,11 +98,14 @@ type Adapters struct {
 }
 
 type Application struct {
-	GetSessionAccount    *GetSessionAccountHandler
-	GetAccountPublicKeys *GetAccountPublicKeysHandler
+	GetSessionAccount        *GetSessionAccountHandler
+	GetAccountPublicKeys     *GetAccountPublicKeysHandler
+	GetTwitterAccountDetails *GetTwitterAccountDetailsHandler
 
 	LoginOrRegister *LoginOrRegisterHandler
+	Logout          *LogoutHandler
 	LinkPublicKey   *LinkPublicKeyHandler
+	UnlinkPublicKey *UnlinkPublicKeyHandler
 }
 
 type ReceivedEvent struct {
@@ -119,6 +135,7 @@ type Metrics interface {
 	ReportNumberOfPublicKeyDownloaderRelays(publicKey domain.PublicKey, n int)
 	ReportRelayConnectionState(relayAddress domain.RelayAddress, state RelayConnectionState)
 	ReportCallingTwitterAPIToPostATweet(err error)
+	ReportCallingTwitterAPIToGetAUser(err error)
 	ReportSubscriptionQueueLength(topic string, n int)
 }
 
@@ -142,4 +159,36 @@ type RelayConnectionState struct {
 
 func (r RelayConnectionState) String() string {
 	return r.s
+}
+
+type TwitterAccountDetails struct {
+	name            string
+	username        string
+	profileImageURL string
+}
+
+func NewTwitterAccountDetails(name string, username string, profileImageURL string) (TwitterAccountDetails, error) {
+	if name == "" {
+		return TwitterAccountDetails{}, errors.New("name can't be empty")
+	}
+	if username == "" {
+		return TwitterAccountDetails{}, errors.New("username can't be empty")
+	}
+	return TwitterAccountDetails{
+		name:            name,
+		username:        username,
+		profileImageURL: profileImageURL,
+	}, nil
+}
+
+func (t TwitterAccountDetails) Name() string {
+	return t.name
+}
+
+func (t TwitterAccountDetails) Username() string {
+	return t.username
+}
+
+func (t TwitterAccountDetails) ProfileImageURL() string {
+	return t.profileImageURL
 }

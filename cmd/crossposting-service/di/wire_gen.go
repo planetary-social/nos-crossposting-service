@@ -53,14 +53,24 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 	}
 	getSessionAccountHandler := app.NewGetSessionAccountHandler(genericTransactionProvider, logger, prometheusPrometheus)
 	getAccountPublicKeysHandler := app.NewGetAccountPublicKeysHandler(genericTransactionProvider, logger, prometheusPrometheus)
+	twitterTwitter := twitter.NewTwitter(configConfig, logger, prometheusPrometheus)
+	developmentTwitter := twitter.NewDevelopmentTwitter(logger)
+	appTwitter := selectTwitterAdapterDependingOnConfig(configConfig, twitterTwitter, developmentTwitter)
+	twitterAccountDetailsCache := adapters.NewTwitterAccountDetailsCache()
+	getTwitterAccountDetailsHandler := app.NewGetTwitterAccountDetailsHandler(genericTransactionProvider, appTwitter, twitterAccountDetailsCache, logger, prometheusPrometheus)
 	idGenerator := adapters.NewIDGenerator()
 	loginOrRegisterHandler := app.NewLoginOrRegisterHandler(genericTransactionProvider, idGenerator, idGenerator, logger, prometheusPrometheus)
+	logoutHandler := app.NewLogoutHandler(genericTransactionProvider, logger, prometheusPrometheus)
 	linkPublicKeyHandler := app.NewLinkPublicKeyHandler(genericTransactionProvider, logger, prometheusPrometheus)
+	unlinkPublicKeyHandler := app.NewUnlinkPublicKeyHandler(genericTransactionProvider, logger, prometheusPrometheus)
 	application := app.Application{
-		GetSessionAccount:    getSessionAccountHandler,
-		GetAccountPublicKeys: getAccountPublicKeysHandler,
-		LoginOrRegister:      loginOrRegisterHandler,
-		LinkPublicKey:        linkPublicKeyHandler,
+		GetSessionAccount:        getSessionAccountHandler,
+		GetAccountPublicKeys:     getAccountPublicKeysHandler,
+		GetTwitterAccountDetails: getTwitterAccountDetailsHandler,
+		LoginOrRegister:          loginOrRegisterHandler,
+		Logout:                   logoutHandler,
+		LinkPublicKey:            linkPublicKeyHandler,
+		UnlinkPublicKey:          unlinkPublicKeyHandler,
 	}
 	frontendFileSystem, err := frontend.NewFrontendFileSystem()
 	if err != nil {
@@ -81,9 +91,6 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 	tweetGenerator := domain.NewTweetGenerator()
 	processReceivedEventHandler := app.NewProcessReceivedEventHandler(genericTransactionProvider, tweetGenerator, logger, prometheusPrometheus)
 	receivedEventSubscriber := memorypubsub2.NewReceivedEventSubscriber(receivedEventPubSub, processReceivedEventHandler, logger)
-	twitterTwitter := twitter.NewTwitter(configConfig, logger, prometheusPrometheus)
-	noopTwitter := twitter.NewNoopTwitter(logger)
-	appTwitter := selectTwitterAdapterDependingOnConfig(configConfig, twitterTwitter, noopTwitter)
 	sendTweetHandler := app.NewSendTweetHandler(genericTransactionProvider, appTwitter, logger, prometheusPrometheus)
 	sqliteSchema := sqlite.NewSqliteSchema()
 	offsetsAdapter := sqlite.NewWatermillOffsetsAdapter()

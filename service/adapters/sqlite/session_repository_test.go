@@ -54,3 +54,56 @@ func TestSessionRepository_ItIsPossibleToRetrieveSavedData(t *testing.T) {
 	})
 	require.NoError(t, err)
 }
+
+func TestSessionRepository_DeletingNonexistentSessionReturnsNoError(t *testing.T) {
+	ctx := fixtures.TestContext(t)
+	adapters := NewTestAdapters(ctx, t)
+
+	err := adapters.TransactionProvider.Transact(ctx, func(ctx context.Context, adapters sqlite.TestAdapters) error {
+		err := adapters.SessionRepository.Delete(fixtures.SomeSessionID())
+		require.NoError(t, err)
+		return nil
+	})
+	require.NoError(t, err)
+}
+
+func TestSessionRepository_DeletingSessionDeletesSession(t *testing.T) {
+	ctx := fixtures.TestContext(t)
+	adapters := NewTestAdapters(ctx, t)
+
+	sessionID := fixtures.SomeSessionID()
+	accountID := fixtures.SomeAccountID()
+	createdAt := time.Now()
+
+	session, err := sessions.NewSession(sessionID, accountID, createdAt)
+	require.NoError(t, err)
+
+	err = adapters.TransactionProvider.Transact(ctx, func(ctx context.Context, adapters sqlite.TestAdapters) error {
+		err = adapters.SessionRepository.Save(session)
+		require.NoError(t, err)
+
+		return nil
+	})
+	require.NoError(t, err)
+
+	err = adapters.TransactionProvider.Transact(ctx, func(ctx context.Context, adapters sqlite.TestAdapters) error {
+		_, err := adapters.SessionRepository.Get(sessionID)
+		require.NoError(t, err)
+		return nil
+	})
+	require.NoError(t, err)
+
+	err = adapters.TransactionProvider.Transact(ctx, func(ctx context.Context, adapters sqlite.TestAdapters) error {
+		err := adapters.SessionRepository.Delete(sessionID)
+		require.NoError(t, err)
+		return nil
+	})
+	require.NoError(t, err)
+
+	err = adapters.TransactionProvider.Transact(ctx, func(ctx context.Context, adapters sqlite.TestAdapters) error {
+		_, err := adapters.SessionRepository.Get(sessionID)
+		require.ErrorIs(t, err, app.ErrSessionDoesNotExist)
+		return nil
+	})
+	require.NoError(t, err)
+}

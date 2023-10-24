@@ -1,7 +1,9 @@
 <template>
-  <div class="log-in-with-twitter-button">
-    <a href="/login">Log in with Twitter.</a>
-  </div>
+  <a href="/login" class="log-in-with-twitter-button">
+    <div class="img-wrapper">
+      <img src="../assets/login_with_x.svg">
+    </div>
+  </a>
 </template>
 
 <script lang="ts">
@@ -13,4 +15,28 @@ export default class LogInWithTwitterButton extends Vue {
 </script>
 
 <style scoped lang="scss">
+a {
+  display: inline-block;
+  margin: 1.5em 0;
+  padding: 5px;
+  border-radius: 10px;
+  background: linear-gradient(#F08508, #F43F75);
+
+  .img-wrapper {
+    padding: 1em 2em;
+    background-color: #170D2B;
+
+    img {
+      display: block;
+      margin: 0 auto;
+      height: 52px;
+    }
+  }
+
+  &:hover {
+    .img-wrapper {
+      background-color: transparent;
+    }
+  }
+}
 </style>

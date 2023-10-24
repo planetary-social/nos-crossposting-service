@@ -72,8 +72,11 @@ var adaptersSet = wire.NewSet(
 	wire.Bind(new(app.RelayEventDownloader), new(*adapters.RelayEventDownloader)),
 
 	twitter.NewTwitter,
-	twitter.NewNoopTwitter,
+	twitter.NewDevelopmentTwitter,
 	selectTwitterAdapterDependingOnConfig,
+
+	adapters.NewTwitterAccountDetailsCache,
+	wire.Bind(new(app.TwitterAccountDetailsCache), new(*adapters.TwitterAccountDetailsCache)),
 )
 
 func newAdaptersFactoryFn(deps buildTransactionSqliteAdaptersDependencies) sqlite.AdaptersFactoryFn {
@@ -103,11 +106,11 @@ func newSqliteDB(conf config.Config, logger logging.Logger) (*sql.DB, func(), er
 
 func selectTwitterAdapterDependingOnConfig(
 	conf config.Config,
-	realAdapter *twitter.Twitter,
-	noopAdapter *twitter.NoopTwitter,
+	productionAdapter *twitter.Twitter,
+	developmentAdapter *twitter.DevelopmentTwitter,
 ) app.Twitter {
 	if conf.Environment() == config.EnvironmentDevelopment {
-		return noopAdapter
+		return developmentAdapter
 	}
-	return realAdapter
+	return productionAdapter
 }
