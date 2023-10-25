@@ -31,7 +31,9 @@ Optional, defaults to `:8009` if empty.
 ### `CROSSPOSTING_ENVIRONMENT`
 
 Execution environment. Setting environment to `DEVELOPMENT`:
-- replaces an adapter which posts to Twitter with a noop adapter
+- replaces a Twitter API adapter with a fake adapter
+  - it doesn't actually post to Twitter
+  - it returns hardcoded fake Twitter account details (due to weird rate-limiting errors)
 
 Optional, can be set to `PRODUCTION` or `DEVELOPMENT`. Defaults to `PRODUCTION`.
 
@@ -66,6 +68,21 @@ Public facing address of the service, required for Twitter callbacks.
 
 Required, e.g. `http://localhost:8008/` or `https://example.com/`.
 
+## Obtaining Twitter API keys
+
+The keys you are after are "Consumer keys". See ["How to get access to the
+Twitter API"][get-twitter-api-keys].
+
+Requirements:
+- Your app must be a part of the project, it can't be standalone.
+- App permissions need to be set to "Read and write".
+- Type of app needs to be set to "Web App, Automated App or Bot".
+- You need to set "Callback URI" accordingly:
+  - for local development to e.g. `http://localhost:8008/login-callback`
+    (unless you set `CROSSPOSTING_ENVIRONMENT` to `DEVELOPMENT` deactivating
+    interacting with the Twitter API)
+  - in production this has to be e.g. `https://example.com/login-callback`
+
 ## Metrics
 
 See configuration for the address of our metrics endpoint. Many out-of-the-box
@@ -91,16 +108,18 @@ You may not be able to build it using older compilers.
 
 ### How to do local development
 
-#### Obtaining Twitter API keys
+#### Without Twitter API
 
-See ["How to get access to the Twitter API"][get-twitter-api-keys].
+Run the following command changing appropriate environment variables:
 
-##### User authentication set up
+```
+CROSSPOSTING_DATABASE_PATH=/path/to/database.sqlite \
+CROSSPOSTING_ENVIRONMENT=DEVELOPMENT \
+CROSSPOSTING_PUBLIC_FACING_ADDRESS=http://localhost:8008/ \
+go run ./cmd/crossposting-service
+```
 
-You need to set `http://localhost:8008/login-callback` as "Callback URI". In
-production this has to be adjusted accordingly.
-
-#### Run the service
+#### With Twitter API
 
 Run the following command changing appropriate environment variables:
 
@@ -108,12 +127,16 @@ Run the following command changing appropriate environment variables:
 CROSSPOSTING_TWITTER_KEY=xxx \
 CROSSPOSTING_TWITTER_KEY_SECRET=xxx \
 CROSSPOSTING_DATABASE_PATH=/path/to/database.sqlite \
-CROSSPOSTING_ENVIRONMENT=DEVELOPMENT \
-CROSSPOSTING_PUBLIC_FACING_ADDRESS=http://localhost:8008/
+CROSSPOSTING_ENVIRONMENT=PRODUCTION \
+CROSSPOSTING_PUBLIC_FACING_ADDRESS=http://localhost:8008/ \
 go run ./cmd/crossposting-service
 ```
 
+
 #### Updating frontend files
+
+Frontend is written in Vue and located in `./frontend`. Precompiled files are
+supposed to be commited as they are embedded in executable files.
 
 In order to update the embedded compiled frontend files run the following
 command:
