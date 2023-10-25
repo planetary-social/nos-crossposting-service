@@ -30,7 +30,7 @@ func TestTweetGenerator_GeneratesTweetsFromNotes(t *testing.T) {
 	require.Equal(t,
 		[]domain.Tweet{
 			domain.NewTweet(
-				"Nostr note made by npub1dergggklka99wwrs92yz8wdjs952h2ux2ha2ed598ngwu9w7a6fsh9xzpc:\n\nWalled gardens became prisons, and nostr is the first step towards tearing down the prison walls.",
+				"Nostr note made by https://njump.me/npub1dergggklka99wwrs92yz8wdjs952h2ux2ha2ed598ngwu9w7a6fsh9xzpc:\n\nWalled gardens became prisons, and nostr is the first step towards tearing down the prison walls.",
 			),
 		},
 		tweets,
