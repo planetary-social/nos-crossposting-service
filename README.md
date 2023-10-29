@@ -108,30 +108,16 @@ You may not be able to build it using older compilers.
 
 ### How to do local development
 
-#### Without Twitter API
-
-Run the following command changing appropriate environment variables:
-
-```
-CROSSPOSTING_DATABASE_PATH=/path/to/database.sqlite \
-CROSSPOSTING_ENVIRONMENT=DEVELOPMENT \
-CROSSPOSTING_PUBLIC_FACING_ADDRESS=http://localhost:8008/ \
-go run ./cmd/crossposting-service
-```
-
-#### With Twitter API
-
 Run the following command changing appropriate environment variables:
 
 ```
 CROSSPOSTING_TWITTER_KEY=xxx \
 CROSSPOSTING_TWITTER_KEY_SECRET=xxx \
 CROSSPOSTING_DATABASE_PATH=/path/to/database.sqlite \
-CROSSPOSTING_ENVIRONMENT=PRODUCTION \
+CROSSPOSTING_ENVIRONMENT=DEVELOPMENT \
 CROSSPOSTING_PUBLIC_FACING_ADDRESS=http://localhost:8008/ \
 go run ./cmd/crossposting-service
 ```
-
 
 #### Updating frontend files
 
