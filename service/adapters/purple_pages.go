@@ -9,9 +9,14 @@ import (
 	"github.com/planetary-social/nos-crossposting-service/service/domain"
 )
 
-var ErrRelayListNotFoundInPurplePages = errors.New("relay list not found in purple pages")
+var (
+	ErrRelayListNotFoundInPurplePages = errors.New("relay list not found in purple pages")
+	ErrPurplePagesTimeout             = errors.New("purple pages lookup timed out")
+)
 
 var purplePagesAddress = domain.MustNewRelayAddress("wss://purplepag.es")
+
+const purplePagesLookupTimeout = 10 * time.Second
 
 type PurplePages struct {
 	logger     logging.Logger
@@ -29,7 +34,7 @@ func NewPurplePages(ctx context.Context, logger logging.Logger) (*PurplePages, e
 }
 
 func (p *PurplePages) GetRelays(ctx context.Context, publicKey domain.PublicKey) ([]domain.RelayAddress, error) {
-	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, purplePagesLookupTimeout)
 	defer cancel()
 
 	for eventOrEOSE := range p.connection.GetEvents(ctx, publicKey, []domain.EventKind{domain.EventKindRelayListMetadata}, nil) {
@@ -51,5 +56,6 @@ func (p *PurplePages) GetRelays(ctx context.Context, publicKey domain.PublicKey)
 			return results, nil
 		}
 	}
-	return nil, errors.New("channel closed")
+
+	return nil, ErrPurplePagesTimeout
 }
