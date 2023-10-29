@@ -2,7 +2,9 @@ package twitter
 
 import (
 	"context"
+	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/boreq/errors"
 	"github.com/g8rswimmer/go-twitter/v2"
@@ -18,6 +20,7 @@ type Twitter struct {
 	conf    config.Config
 	logger  logging.Logger
 	metrics app.Metrics
+	limiter *Limiter
 }
 
 func NewTwitter(
@@ -27,6 +30,7 @@ func NewTwitter(
 ) *Twitter {
 	return &Twitter{
 		conf:    conf,
+		limiter: NewLimiter(),
 		logger:  logger.New("twitter"),
 		metrics: metrics,
 	}
@@ -49,6 +53,10 @@ func (t *Twitter) PostTweet(
 		Authorizer: authorizer,
 		Client:     http.DefaultClient,
 		Host:       "https://api.twitter.com",
+	}
+
+	if err := t.limiter.Limit(fmt.Sprintf("create-tweet-%s", userAccessToken), 200, 15*time.Minute); err != nil {
+		return errors.Wrap(err, "limiter error")
 	}
 
 	response, err := client.CreateTweet(ctx, twitter.CreateTweetRequest{
@@ -85,6 +93,10 @@ func (t *Twitter) GetAccountDetails(
 		Authorizer: authorizer,
 		Client:     http.DefaultClient,
 		Host:       "https://api.twitter.com",
+	}
+
+	if err := t.limiter.Limit(fmt.Sprintf("user-lookup-%s", userAccessToken), 75, 15*time.Minute); err != nil {
+		return app.TwitterAccountDetails{}, errors.Wrap(err, "limiter error")
 	}
 
 	result, err := client.UserLookup(ctx, []string{"me"}, twitter.UserLookupOpts{
