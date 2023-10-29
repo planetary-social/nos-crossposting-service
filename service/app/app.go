@@ -137,6 +137,7 @@ type Metrics interface {
 	ReportCallingTwitterAPIToPostATweet(err error)
 	ReportCallingTwitterAPIToGetAUser(err error)
 	ReportSubscriptionQueueLength(topic string, n int)
+	ReportPurplePagesLookupResult(err *error)
 }
 
 type ApplicationCall interface {

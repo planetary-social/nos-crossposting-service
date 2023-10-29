@@ -45,6 +45,7 @@ type Prometheus struct {
 	numberOfPublicKeyDownloaderRelaysGauge *prometheus.GaugeVec
 	relayConnectionStateGauge              *prometheus.GaugeVec
 	twitterAPICallsCounter                 *prometheus.CounterVec
+	purplePagesLookupResultCounter         *prometheus.CounterVec
 
 	registry *prometheus.Registry
 
@@ -107,6 +108,13 @@ func NewPrometheus(logger logging.Logger) (*Prometheus, error) {
 		},
 		[]string{labelResult, labelAction},
 	)
+	purplePagesLookupResultCounter := prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "purple_pages_lookups",
+			Help: "Number of purple pages lookups.",
+		},
+		[]string{labelResult},
+	)
 
 	reg := prometheus.NewRegistry()
 	for _, v := range []prometheus.Collector{
@@ -118,6 +126,7 @@ func NewPrometheus(logger logging.Logger) (*Prometheus, error) {
 		numberOfPublicKeyDownloaderRelaysGauge,
 		relayConnectionStateGauge,
 		twitterAPICallsCounter,
+		purplePagesLookupResultCounter,
 
 		collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}),
 		collectors.NewGoCollector(),
@@ -150,6 +159,7 @@ func NewPrometheus(logger logging.Logger) (*Prometheus, error) {
 		numberOfPublicKeyDownloaderRelaysGauge: numberOfPublicKeyDownloaderRelaysGauge,
 		relayConnectionStateGauge:              relayConnectionStateGauge,
 		twitterAPICallsCounter:                 twitterAPICallsCounter,
+		purplePagesLookupResultCounter:         purplePagesLookupResultCounter,
 
 		registry: reg,
 
@@ -214,6 +224,16 @@ func (p *Prometheus) ReportCallingTwitterAPIToGetAUser(err error) {
 
 func (p *Prometheus) ReportSubscriptionQueueLength(topic string, n int) {
 	p.subscriptionQueueLengthGauge.With(prometheus.Labels{labelTopic: topic}).Set(float64(n))
+}
+
+func (p *Prometheus) ReportPurplePagesLookupResult(err *error) {
+	var labels prometheus.Labels
+	if *err == nil {
+		labels = prometheus.Labels{labelResult: labelResultValueSuccess}
+	} else {
+		labels = prometheus.Labels{labelResult: labelResultValueError}
+	}
+	p.purplePagesLookupResultCounter.With(labels).Inc()
 }
 
 type ApplicationCall struct {

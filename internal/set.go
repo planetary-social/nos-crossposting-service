@@ -27,6 +27,12 @@ func (s *Set[T]) Put(v T) {
 	s.values[v] = struct{}{}
 }
 
+func (s *Set[T]) PutMany(vs []T) {
+	for _, v := range vs {
+		s.Put(v)
+	}
+}
+
 func (s *Set[T]) Clear() {
 	s.values = make(map[T]struct{})
 }
