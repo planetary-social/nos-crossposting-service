@@ -119,7 +119,7 @@ CROSSPOSTING_PUBLIC_FACING_ADDRESS=http://localhost:8008/ \
 go run ./cmd/crossposting-service
 ```
 
-#### Updating frontend files
+### Updating frontend files
 
 Frontend is written in Vue and located in `./frontend`. Precompiled files are
 supposed to be commited as they are embedded in executable files.
