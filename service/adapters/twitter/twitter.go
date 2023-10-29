@@ -16,6 +16,12 @@ import (
 	"github.com/planetary-social/nos-crossposting-service/service/domain/accounts"
 )
 
+const (
+	apiLimitWindow         = 15 * time.Minute
+	apiLimitCreateTweet    = 25 // docs claim 200 but it doesn't seem true at all
+	apiLimitGetUserDetails = 75
+)
+
 type Twitter struct {
 	conf    config.Config
 	logger  logging.Logger
@@ -55,7 +61,11 @@ func (t *Twitter) PostTweet(
 		Host:       "https://api.twitter.com",
 	}
 
-	if err := t.limiter.Limit(fmt.Sprintf("create-tweet-%s", userAccessToken), 200, 15*time.Minute); err != nil {
+	if err := t.limiter.Limit(
+		fmt.Sprintf("create-tweet-%s", userAccessToken),
+		apiLimitCreateTweet,
+		apiLimitWindow,
+	); err != nil {
 		return errors.Wrap(err, "limiter error")
 	}
 
@@ -95,7 +105,11 @@ func (t *Twitter) GetAccountDetails(
 		Host:       "https://api.twitter.com",
 	}
 
-	if err := t.limiter.Limit(fmt.Sprintf("user-lookup-%s", userAccessToken), 75, 15*time.Minute); err != nil {
+	if err := t.limiter.Limit(
+		fmt.Sprintf("user-lookup-%s", userAccessToken),
+		apiLimitGetUserDetails,
+		apiLimitWindow,
+	); err != nil {
 		return app.TwitterAccountDetails{}, errors.Wrap(err, "limiter error")
 	}
 
@@ -128,6 +142,9 @@ func (t *Twitter) logError(err error) {
 			WithField("title", errorResponse.Title).
 			WithField("detail", errorResponse.Detail).
 			WithField("type", errorResponse.Type).
+			WithField("rateLimit.limit", errorResponse.RateLimit.Limit).
+			WithField("rateLimit.reset", errorResponse.RateLimit.Reset).
+			WithField("rateLimit.remaining", errorResponse.RateLimit.Remaining).
 			Message("received an error response from twitter")
 	}
 }
