@@ -67,7 +67,7 @@ func (r *RelayConnection) GetEvents(ctx context.Context, publicKey domain.Public
 
 	go func() {
 		<-ctx.Done()
-		if err := r.removeChannel(publicKey, ch); err != nil {
+		if err := r.removeChannel(ch); err != nil {
 			panic(err)
 		}
 	}()
@@ -85,7 +85,7 @@ func (r *RelayConnection) Address() domain.RelayAddress {
 	return r.address
 }
 
-func (r *RelayConnection) removeChannel(publicKey domain.PublicKey, chToRemove chan app.EventOrEndOfSavedEvents) error {
+func (r *RelayConnection) removeChannel(chToRemove chan app.EventOrEndOfSavedEvents) error {
 	r.subscriptionsMutex.Lock()
 	defer r.subscriptionsMutex.Unlock()
 

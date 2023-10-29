@@ -33,7 +33,8 @@ func (p RelaySource) GetRelays(ctx context.Context, publicKey domain.PublicKey) 
 
 	relayAddressesFromPurplePages, err := p.purplePages.GetRelays(ctx, publicKey)
 	if err != nil {
-		if errors.Is(err, ErrRelayListNotFoundInPurplePages) {
+		if errors.Is(err, ErrRelayListNotFoundInPurplePages) ||
+			errors.Is(err, ErrPurplePagesTimeout) {
 			return result.List(), nil
 		}
 		return nil, errors.Wrap(err, "error querying purple pages")
