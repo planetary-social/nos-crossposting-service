@@ -80,7 +80,7 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 	server := http.NewServer(configConfig, application, logger, frontendFileSystem)
 	metricsServer := http.NewMetricsServer(prometheusPrometheus, configConfig, logger)
 	receivedEventPubSub := memorypubsub.NewReceivedEventPubSub()
-	purplePages, err := adapters.NewPurplePages(contextContext, logger)
+	purplePages, err := adapters.NewPurplePages(contextContext, logger, prometheusPrometheus)
 	if err != nil {
 		cleanup()
 		return Service{}, nil, err
