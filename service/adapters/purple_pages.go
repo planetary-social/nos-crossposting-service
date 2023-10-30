@@ -77,7 +77,9 @@ func (p *PurplePages) GetRelays(ctx context.Context, publicKey domain.PublicKey)
 	var compoundError error
 	errorsCounter := 0
 
-	for result := range ch {
+	for i := 0; i < 2; i++ {
+		result := <-ch
+
 		if result.Err != nil {
 			if errors.Is(err, ErrPurplePagesTimeout) {
 				return nil, errors.Wrap(err, "one of the lookups timed out")
