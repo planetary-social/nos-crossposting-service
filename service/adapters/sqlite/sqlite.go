@@ -25,6 +25,7 @@ type TestedItems struct {
 	Migrations          *Migrations
 	Subscriber          *Subscriber
 	MigrationsStorage   *MigrationsStorage
+	PubSub              *PubSub
 }
 
 func Open(conf config.Config) (*sql.DB, error) {

@@ -12,17 +12,20 @@ type Migrations struct {
 	db                     *sql.DB
 	watermillSchemaAdapter watermillsql.SchemaAdapter
 	watermilOffsetsAdapter watermillsql.OffsetsAdapter
+	pubsub                 *PubSub
 }
 
 func NewMigrations(
 	db *sql.DB,
 	watermillSchemaAdapter watermillsql.SchemaAdapter,
 	watermillOffsetsAdapter watermillsql.OffsetsAdapter,
+	pubsub *PubSub,
 ) *Migrations {
 	return &Migrations{
 		db:                     db,
 		watermillSchemaAdapter: watermillSchemaAdapter,
 		watermilOffsetsAdapter: watermillOffsetsAdapter,
+		pubsub:                 pubsub,
 	}
 }
 
@@ -96,6 +99,12 @@ func (m *Migrations) Execute(ctx context.Context) error {
 			if _, err = m.db.Exec(query); err != nil {
 				return errors.Wrapf(err, "error initializing watermill offsets for topic '%s'", topic)
 			}
+		}
+	}
+
+	for _, query := range m.pubsub.InitializingQueries() {
+		if _, err = m.db.Exec(query); err != nil {
+			return errors.Wrapf(err, "error initializing pubsub")
 		}
 	}
 

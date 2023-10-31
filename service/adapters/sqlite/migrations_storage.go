@@ -7,12 +7,6 @@ import (
 	"github.com/planetary-social/nos-crossposting-service/migrations"
 )
 
-const (
-	migrationsBucket       = "migrations"
-	migrationsBucketStatus = "status"
-	migrationsBucketState  = "state"
-)
-
 type MigrationsStorage struct {
 	db *sql.DB
 }

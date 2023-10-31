@@ -100,7 +100,8 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 	}
 	sqliteSubscriber := sqlite.NewSubscriber(subscriber, offsetsAdapter, sqliteSchema, db)
 	tweetCreatedEventSubscriber := sqlitepubsub.NewTweetCreatedEventSubscriber(sendTweetHandler, sqliteSubscriber, logger, prometheusPrometheus)
-	migrations := sqlite.NewMigrations(db, sqliteSchema, offsetsAdapter)
+	pubSub := sqlite.NewPubSub(db, logger)
+	migrations := sqlite.NewMigrations(db, sqliteSchema, offsetsAdapter, pubSub)
 	service := NewService(application, server, metricsServer, downloader, receivedEventSubscriber, tweetCreatedEventSubscriber, migrations)
 	return service, func() {
 		cleanup()
@@ -128,7 +129,8 @@ func BuildTestAdapters(contextContext context.Context, tb testing.TB) (sqlite.Te
 	genericTransactionProvider := sqlite.NewTestTransactionProvider(db, genericAdaptersFactoryFn)
 	sqliteSchema := sqlite.NewSqliteSchema()
 	offsetsAdapter := sqlite.NewWatermillOffsetsAdapter()
-	migrations := sqlite.NewMigrations(db, sqliteSchema, offsetsAdapter)
+	pubSub := sqlite.NewPubSub(db, logger)
+	migrations := sqlite.NewMigrations(db, sqliteSchema, offsetsAdapter, pubSub)
 	subscriber, err := sqlite.NewWatermillSubscriber(db, watermillAdapter, sqliteSchema, offsetsAdapter)
 	if err != nil {
 		cleanup()
@@ -145,6 +147,7 @@ func BuildTestAdapters(contextContext context.Context, tb testing.TB) (sqlite.Te
 		Migrations:          migrations,
 		Subscriber:          sqliteSubscriber,
 		MigrationsStorage:   migrationsStorage,
+		PubSub:              pubSub,
 	}
 	return testedItems, func() {
 		cleanup()

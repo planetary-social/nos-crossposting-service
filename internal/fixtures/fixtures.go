@@ -97,6 +97,18 @@ func SomeHexBytesOfLen(l int) string {
 	return hex.EncodeToString(b)
 }
 
+func SomeBytesOfLen(l int) []byte {
+	b := make([]byte, l)
+	n, err := cryptorand.Read(b)
+	if n != len(b) {
+		panic("short read")
+	}
+	if err != nil {
+		panic(err)
+	}
+	return b
+}
+
 func SomeFile(t testing.TB) string {
 	file, err := os.CreateTemp("", "nos-crossposting-test")
 	if err != nil {
