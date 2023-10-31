@@ -219,10 +219,6 @@ func (p *PubSub) readMsg(topic string) (Message, error) {
 	return NewMessage(uuid, payload)
 }
 
-func (p *PubSub) ackOrNack(msg Message) *ReceivedMessage {
-	return NewReceivedMessage(msg)
-}
-
 func (p *PubSub) ack(msg Message) error {
 	_, err := p.db.Exec(
 		"DELETE FROM pubsub WHERE uuid = ?",
