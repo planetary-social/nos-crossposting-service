@@ -145,13 +145,15 @@ func BuildTestAdapters(contextContext context.Context, tb testing.TB) (sqlite.Te
 		cleanup()
 		return sqlite.TestedItems{}, nil, err
 	}
+	loggingMigrationsProgressCallback := adapters.NewLoggingMigrationsProgressCallback(logger)
 	testedItems := sqlite.TestedItems{
-		TransactionProvider: genericTransactionProvider,
-		Subscriber:          subscriber,
-		MigrationsStorage:   migrationsStorage,
-		PubSub:              pubSub,
-		MigrationsRunner:    runner,
-		Migrations:          migrationsMigrations,
+		TransactionProvider:        genericTransactionProvider,
+		Subscriber:                 subscriber,
+		MigrationsStorage:          migrationsStorage,
+		PubSub:                     pubSub,
+		MigrationsRunner:           runner,
+		Migrations:                 migrationsMigrations,
+		MigrationsProgressCallback: loggingMigrationsProgressCallback,
 	}
 	return testedItems, func() {
 		cleanup()

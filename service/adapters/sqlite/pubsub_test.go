@@ -92,7 +92,9 @@ func TestPubSub_MessageContainCorrectPayloadAndAckedMessagesAreNotRetried(t *tes
 		},
 	}
 
-	for _, testCase := range testCases {
+	for i := range testCases {
+		testCase := testCases[i]
+
 		t.Run(testCase.Name, func(t *testing.T) {
 			t.Parallel()
 

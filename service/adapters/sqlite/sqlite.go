@@ -27,8 +27,9 @@ type TestedItems struct {
 	MigrationsStorage   *MigrationsStorage
 	PubSub              *PubSub
 
-	MigrationsRunner *migrations.Runner
-	Migrations       migrations.Migrations
+	MigrationsRunner           *migrations.Runner
+	Migrations                 migrations.Migrations
+	MigrationsProgressCallback migrations.ProgressCallback
 }
 
 func Open(conf config.Config) (*sql.DB, error) {

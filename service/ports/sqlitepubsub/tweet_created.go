@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/boreq/errors"
 	"github.com/planetary-social/nos-crossposting-service/internal/logging"
 	"github.com/planetary-social/nos-crossposting-service/service/adapters/sqlite"
@@ -44,26 +43,25 @@ func NewTweetCreatedEventSubscriber(
 func (s *TweetCreatedEventSubscriber) Run(ctx context.Context) error {
 	go s.reportMetricsLoop(ctx)
 
-	ch, err := s.subscriber.SubscribeToTweetCreated(ctx)
-	if err != nil {
-		return errors.Wrap(err, "error calling subscribe")
-	}
-
-	for msg := range ch {
+	for msg := range s.subscriber.SubscribeToTweetCreated(ctx) {
 		if err := s.handleMessage(ctx, msg); err != nil {
 			s.logger.Error().WithError(err).Message("error handling a message")
-			msg.Nack()
+			if err := msg.Nack(); err != nil {
+				return errors.Wrap(err, "error nacking a message")
+			}
 		} else {
-			msg.Ack()
+			if err := msg.Ack(); err != nil {
+				return errors.Wrap(err, "error acking a message")
+			}
 		}
 	}
 
 	return errors.New("channel closed")
 }
 
-func (s *TweetCreatedEventSubscriber) handleMessage(ctx context.Context, msg *message.Message) error {
+func (s *TweetCreatedEventSubscriber) handleMessage(ctx context.Context, msg *sqlite.ReceivedMessage) error {
 	var transport sqlite.TweetCreatedEventTransport
-	if err := json.Unmarshal(msg.Payload, &transport); err != nil {
+	if err := json.Unmarshal(msg.Payload(), &transport); err != nil {
 		return errors.Wrap(err, "error unmarshaling")
 	}
 
