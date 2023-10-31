@@ -137,15 +137,19 @@ func (t *Twitter) GetAccountDetails(
 func (t *Twitter) logError(err error) {
 	var errorResponse *twitter.ErrorResponse
 	if errors.As(err, &errorResponse) {
-		t.logger.Error().
+		l := t.logger.Error().
 			WithField("statusCode", errorResponse.StatusCode).
 			WithField("title", errorResponse.Title).
 			WithField("detail", errorResponse.Detail).
-			WithField("type", errorResponse.Type).
-			WithField("rateLimit.limit", errorResponse.RateLimit.Limit).
-			WithField("rateLimit.reset", errorResponse.RateLimit.Reset).
-			WithField("rateLimit.remaining", errorResponse.RateLimit.Remaining).
-			Message("received an error response from twitter")
+			WithField("type", errorResponse.Type)
+
+		if errorResponse.RateLimit != nil {
+			l = l.WithField("rateLimit.limit", errorResponse.RateLimit.Limit).
+				WithField("rateLimit.reset", errorResponse.RateLimit.Reset).
+				WithField("rateLimit.remaining", errorResponse.RateLimit.Remaining)
+		}
+
+		l.Message("received an error response from twitter")
 	}
 }
 
