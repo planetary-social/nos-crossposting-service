@@ -37,6 +37,8 @@ var sqliteTestAdaptersSet = wire.NewSet(
 	sqlite.NewMigrations,
 
 	wire.Struct(new(buildTransactionSqliteAdaptersDependencies), "*"),
+
+	sqlite.NewMigrationsStorage,
 )
 
 var sqliteTxAdaptersSet = wire.NewSet(

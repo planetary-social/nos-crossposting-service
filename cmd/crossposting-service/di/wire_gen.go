@@ -9,8 +9,6 @@ package di
 import (
 	"context"
 	"database/sql"
-	"testing"
-
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/google/wire"
 	"github.com/planetary-social/nos-crossposting-service/internal/fixtures"
@@ -27,6 +25,7 @@ import (
 	"github.com/planetary-social/nos-crossposting-service/service/ports/http/frontend"
 	memorypubsub2 "github.com/planetary-social/nos-crossposting-service/service/ports/memorypubsub"
 	"github.com/planetary-social/nos-crossposting-service/service/ports/sqlitepubsub"
+	"testing"
 )
 
 // Injectors from wire.go:
@@ -136,10 +135,16 @@ func BuildTestAdapters(contextContext context.Context, tb testing.TB) (sqlite.Te
 		return sqlite.TestedItems{}, nil, err
 	}
 	sqliteSubscriber := sqlite.NewSubscriber(subscriber, offsetsAdapter, sqliteSchema, db)
+	migrationsStorage, err := sqlite.NewMigrationsStorage(db)
+	if err != nil {
+		cleanup()
+		return sqlite.TestedItems{}, nil, err
+	}
 	testedItems := sqlite.TestedItems{
 		TransactionProvider: genericTransactionProvider,
 		Migrations:          migrations,
 		Subscriber:          sqliteSubscriber,
+		MigrationsStorage:   migrationsStorage,
 	}
 	return testedItems, func() {
 		cleanup()

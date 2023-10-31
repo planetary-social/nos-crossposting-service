@@ -120,6 +120,10 @@ func TestContext(t testing.TB) context.Context {
 	return ctx
 }
 
+func SomeError() error {
+	return fmt.Errorf("some error: %d", rand.Int())
+}
+
 var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
 func randSeq(n int) string {
