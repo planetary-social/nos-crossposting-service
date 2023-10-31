@@ -15,7 +15,7 @@ func NewTestAdapters(ctx context.Context, tb testing.TB) sqlite.TestedItems {
 
 	tb.Cleanup(f)
 
-	err = adapters.Migrations.Execute(ctx)
+	err = adapters.MigrationsRunner.Run(ctx, adapters.Migrations, adapters.MigrationsProgressCallback)
 	require.NoError(tb, err)
 
 	return adapters

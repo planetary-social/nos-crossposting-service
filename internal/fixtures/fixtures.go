@@ -97,6 +97,18 @@ func SomeHexBytesOfLen(l int) string {
 	return hex.EncodeToString(b)
 }
 
+func SomeBytesOfLen(l int) []byte {
+	b := make([]byte, l)
+	n, err := cryptorand.Read(b)
+	if n != len(b) {
+		panic("short read")
+	}
+	if err != nil {
+		panic(err)
+	}
+	return b
+}
+
 func SomeFile(t testing.TB) string {
 	file, err := os.CreateTemp("", "nos-crossposting-test")
 	if err != nil {
@@ -118,6 +130,10 @@ func TestContext(t testing.TB) context.Context {
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 	return ctx
+}
+
+func SomeError() error {
+	return fmt.Errorf("some error: %d", rand.Int())
 }
 
 var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")

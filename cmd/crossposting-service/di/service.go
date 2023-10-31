@@ -5,7 +5,7 @@ import (
 
 	"github.com/boreq/errors"
 	"github.com/hashicorp/go-multierror"
-	"github.com/planetary-social/nos-crossposting-service/service/adapters/sqlite"
+	"github.com/planetary-social/nos-crossposting-service/migrations"
 	"github.com/planetary-social/nos-crossposting-service/service/app"
 	"github.com/planetary-social/nos-crossposting-service/service/ports/http"
 	"github.com/planetary-social/nos-crossposting-service/service/ports/memorypubsub"
@@ -19,7 +19,9 @@ type Service struct {
 	downloader                  *app.Downloader
 	receivedEventSubscriber     *memorypubsub.ReceivedEventSubscriber
 	tweetCreatedEventSubscriber *sqlitepubsub.TweetCreatedEventSubscriber
-	migrations                  *sqlite.Migrations
+	migrationsRunner            *migrations.Runner
+	migrations                  migrations.Migrations
+	migrationsProgressCallback  migrations.ProgressCallback
 }
 
 func NewService(
@@ -29,7 +31,9 @@ func NewService(
 	downloader *app.Downloader,
 	receivedEventSubscriber *memorypubsub.ReceivedEventSubscriber,
 	tweetCreatedEventSubscriber *sqlitepubsub.TweetCreatedEventSubscriber,
-	migrations *sqlite.Migrations,
+	migrationsRunner *migrations.Runner,
+	migrations migrations.Migrations,
+	migrationsProgressCallback migrations.ProgressCallback,
 ) Service {
 	return Service{
 		app:                         app,
@@ -38,7 +42,9 @@ func NewService(
 		downloader:                  downloader,
 		receivedEventSubscriber:     receivedEventSubscriber,
 		tweetCreatedEventSubscriber: tweetCreatedEventSubscriber,
+		migrationsRunner:            migrationsRunner,
 		migrations:                  migrations,
+		migrationsProgressCallback:  migrationsProgressCallback,
 	}
 }
 
@@ -47,7 +53,7 @@ func (s Service) App() app.Application {
 }
 
 func (s Service) ExecuteMigrations(ctx context.Context) error {
-	return s.migrations.Execute(ctx)
+	return s.migrationsRunner.Run(ctx, s.migrations, s.migrationsProgressCallback)
 }
 
 func (s Service) Run(ctx context.Context) error {
