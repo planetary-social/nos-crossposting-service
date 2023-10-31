@@ -4,7 +4,6 @@ go 1.21
 
 require (
 	github.com/ThreeDotsLabs/watermill v1.3.1
-	github.com/ThreeDotsLabs/watermill-sql/v2 v2.0.0
 	github.com/boreq/errors v0.1.0
 	github.com/boreq/rest v0.1.0
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.0.1
@@ -52,12 +51,12 @@ require (
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
-	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_model v0.3.0 // indirect
 	github.com/prometheus/common v0.42.0 // indirect
 	github.com/prometheus/procfs v0.10.1 // indirect
 	github.com/puzpuzpuz/xsync v1.5.2 // indirect
+	github.com/rogpeppe/go-internal v1.10.0 // indirect
 	github.com/tidwall/gjson v1.14.4 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.0 // indirect
