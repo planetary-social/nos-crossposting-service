@@ -15,18 +15,12 @@ var memoryPubsubSet = wire.NewSet(
 )
 
 var sqlitePubsubSet = wire.NewSet(
-	//sqlite.NewSqliteSchema,
-	//wire.Bind(new(watermillsql.SchemaAdapter), new(sqlite.SqliteSchema)),
-
-	//sqlite.NewWatermillOffsetsAdapter,
-	//sqlite.NewWatermillSubscriber,
 	sqlitepubsubport.NewTweetCreatedEventSubscriber,
 	sqlite.NewSubscriber,
 	sqlite.NewPubSub,
 )
 
 var sqliteTxPubsubSet = wire.NewSet(
-	sqlite.NewWatermillPublisher,
 	sqlite.NewPublisher,
 	wire.Bind(new(app.Publisher), new(*sqlite.Publisher)),
 )
