@@ -9,6 +9,7 @@ import (
 var (
 	tagProfile = MustNewEventTagName("p")
 	tagRelay   = MustNewEventTagName("r")
+	tagEvent   = MustNewEventTagName("e")
 )
 
 type EventTag struct {
@@ -47,6 +48,10 @@ func (e EventTag) IsProfile() bool {
 
 func (e EventTag) IsRelay() bool {
 	return e.name == tagRelay
+}
+
+func (e EventTag) IsEvent() bool {
+	return e.name == tagEvent
 }
 
 func (e EventTag) Profile() (PublicKey, error) {

@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/boreq/errors"
 )
 
 const noteContentMaxLengthInRunes = 200
@@ -17,6 +19,15 @@ func NewTweetGenerator() *TweetGenerator {
 
 func (g *TweetGenerator) Generate(event Event) ([]Tweet, error) {
 	if event.Kind() != EventKindNote {
+		return nil, nil
+	}
+
+	isReply, err := NoteIsReplyingToOtherEvent(event)
+	if err != nil {
+		return nil, errors.Wrap(err, "error checking if note is a reply")
+	}
+
+	if isReply {
 		return nil, nil
 	}
 
