@@ -80,7 +80,7 @@ func (p *PurplePages) GetRelays(ctx context.Context, publicKey domain.PublicKey)
 	for i := 0; i < 2; i++ {
 		result := <-ch
 
-		if result.Err != nil {
+		if err := result.Err; err != nil {
 			if errors.Is(err, ErrPurplePagesTimeout) {
 				return nil, errors.Wrap(err, "one of the lookups timed out")
 			}
