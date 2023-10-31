@@ -152,13 +152,9 @@ func (p *PubSub) subscribe(ctx context.Context, topic string, ch chan *ReceivedM
 	noMessagesCounter := 0
 
 	for {
-		p.logger.Debug().Message("reading message")
-
 		msg, err := p.readMsg(topic)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
-				p.logger.Debug().Message("no rows")
-
 				noMessagesCounter++
 				backoff := getNoMessagesBackoff(noMessagesCounter)
 
