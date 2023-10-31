@@ -143,6 +143,12 @@ func (t *Twitter) logError(err error) {
 			WithField("detail", errorResponse.Detail).
 			WithField("type", errorResponse.Type)
 
+		for i, error := range errorResponse.Errors {
+			l = l.
+				WithField(fmt.Sprintf("err.%d.parameters", i), error.Parameters).
+				WithField(fmt.Sprintf("err.%d.message", i), error.Message)
+		}
+
 		if errorResponse.RateLimit != nil {
 			l = l.WithField("rateLimit.limit", errorResponse.RateLimit.Limit).
 				WithField("rateLimit.reset", errorResponse.RateLimit.Reset).
