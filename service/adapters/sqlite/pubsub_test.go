@@ -1,13 +1,15 @@
 package sqlite_test
 
 import (
+	"context"
+	"sync"
+	"testing"
+	"time"
+
 	"github.com/planetary-social/nos-crossposting-service/internal/fixtures"
 	"github.com/planetary-social/nos-crossposting-service/service/adapters/sqlite"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"sync"
-	"testing"
-	"time"
 )
 
 func TestPubSub_PublishDoesNotReturnErrors(t *testing.T) {
@@ -73,37 +75,59 @@ func TestPubSub_NackedMessagesAreRetried(t *testing.T) {
 	}, 10*time.Second, 100*time.Microsecond)
 }
 
-func TestPubSub_AckedMessagesAreNotRetried(t *testing.T) {
+func TestPubSub_MessageContainCorrectPayloadAndAckedMessagesAreNotRetried(t *testing.T) {
 	t.Parallel()
 
-	ctx := fixtures.TestContext(t)
-	adapters := NewTestAdapters(ctx, t)
+	testCases := []struct {
+		Name    string
+		Payload []byte
+	}{
+		{
+			Name:    "nil",
+			Payload: nil,
+		},
+		{
+			Name:    "not_nil",
+			Payload: fixtures.SomeBytesOfLen(10),
+		},
+	}
 
-	msg, err := sqlite.NewMessage(fixtures.SomeString(), nil)
-	require.NoError(t, err)
+	for _, testCase := range testCases {
+		t.Run(testCase.Name, func(t *testing.T) {
+			t.Parallel()
 
-	topic := fixtures.SomeString()
+			ctx := fixtures.TestContext(t)
+			adapters := NewTestAdapters(ctx, t)
 
-	err = adapters.PubSub.Publish(topic, msg)
-	require.NoError(t, err)
-
-	var msgs []*sqlite.ReceivedMessage
-	var msgsLock sync.Mutex
-
-	go func() {
-		for msg := range adapters.PubSub.Subscribe(ctx, topic) {
-			msgsLock.Lock()
-			msgs = append(msgs, msg)
-			msgsLock.Unlock()
-			err := msg.Ack()
+			msg, err := sqlite.NewMessage(fixtures.SomeString(), testCase.Payload)
 			require.NoError(t, err)
-		}
-	}()
 
-	<-time.After(10 * time.Second)
-	msgsLock.Lock()
-	require.Len(t, msgs, 1)
-	msgsLock.Unlock()
+			topic := fixtures.SomeString()
+
+			err = adapters.PubSub.Publish(topic, msg)
+			require.NoError(t, err)
+
+			var msgs []*sqlite.ReceivedMessage
+			var msgsLock sync.Mutex
+
+			go func() {
+				for msg := range adapters.PubSub.Subscribe(ctx, topic) {
+					msgsLock.Lock()
+					msgs = append(msgs, msg)
+					msgsLock.Unlock()
+					err := msg.Ack()
+					require.NoError(t, err)
+				}
+			}()
+
+			<-time.After(10 * time.Second)
+			msgsLock.Lock()
+			require.Len(t, msgs, 1)
+			require.Equal(t, msg.UUID(), msgs[0].UUID())
+			require.Equal(t, msg.Payload(), msgs[0].Payload())
+			msgsLock.Unlock()
+		})
+	}
 }
 
 func TestPubSub_NotAckedOrNackedMessagesBlock(t *testing.T) {
@@ -135,4 +159,50 @@ func TestPubSub_NotAckedOrNackedMessagesBlock(t *testing.T) {
 	msgsLock.Lock()
 	require.Len(t, msgs, 1)
 	msgsLock.Unlock()
+}
+
+func TestPubSub_QueueLengthReportsNumberOfElementsInQueue(t *testing.T) {
+	t.Parallel()
+
+	ctx := fixtures.TestContext(t)
+	adapters := NewTestAdapters(ctx, t)
+
+	msg1, err := sqlite.NewMessage(fixtures.SomeString(), nil)
+	require.NoError(t, err)
+
+	msg2, err := sqlite.NewMessage(fixtures.SomeString(), nil)
+	require.NoError(t, err)
+
+	topic := fixtures.SomeString()
+
+	err = adapters.PubSub.Publish(topic, msg1)
+	require.NoError(t, err)
+
+	n, err := adapters.PubSub.QueueLength(topic)
+	require.NoError(t, err)
+	require.Equal(t, 1, n)
+
+	err = adapters.PubSub.Publish(topic, msg2)
+	require.NoError(t, err)
+
+	n, err = adapters.PubSub.QueueLength(topic)
+	require.NoError(t, err)
+	require.Equal(t, 2, n)
+
+	go func() {
+		ctx, cancel := context.WithCancel(ctx)
+		defer cancel()
+
+		for msg := range adapters.PubSub.Subscribe(ctx, topic) {
+			err := msg.Ack()
+			require.NoError(t, err)
+			return
+		}
+	}()
+
+	require.EventuallyWithT(t, func(collect *assert.CollectT) {
+		n, err = adapters.PubSub.QueueLength(topic)
+		assert.NoError(t, err)
+		assert.Equal(t, 1, n)
+	}, 10*time.Second, 100*time.Millisecond)
 }

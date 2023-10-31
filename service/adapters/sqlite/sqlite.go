@@ -7,6 +7,7 @@ import (
 	"github.com/boreq/errors"
 	"github.com/hashicorp/go-multierror"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/planetary-social/nos-crossposting-service/migrations"
 	"github.com/planetary-social/nos-crossposting-service/service/app"
 	"github.com/planetary-social/nos-crossposting-service/service/config"
 )
@@ -22,10 +23,12 @@ type TestAdapters struct {
 
 type TestedItems struct {
 	TransactionProvider *TestTransactionProvider
-	Migrations          *Migrations
 	Subscriber          *Subscriber
 	MigrationsStorage   *MigrationsStorage
 	PubSub              *PubSub
+
+	MigrationsRunner *migrations.Runner
+	Migrations       migrations.Migrations
 }
 
 func Open(conf config.Config) (*sql.DB, error) {

@@ -3,12 +3,12 @@ package migrations_test
 import (
 	"context"
 	"fmt"
+	"testing"
+
 	"github.com/planetary-social/nos-crossposting-service/internal"
 	"github.com/planetary-social/nos-crossposting-service/internal/fixtures"
 	"github.com/planetary-social/nos-crossposting-service/internal/logging"
 	"github.com/planetary-social/nos-crossposting-service/migrations"
-	"testing"
-
 	"github.com/stretchr/testify/require"
 )
 

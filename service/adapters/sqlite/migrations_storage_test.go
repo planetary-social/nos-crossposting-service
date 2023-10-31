@@ -1,10 +1,11 @@
 package sqlite_test
 
 import (
+	"testing"
+
 	"github.com/planetary-social/nos-crossposting-service/internal/fixtures"
 	"github.com/planetary-social/nos-crossposting-service/migrations"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestMigrationsStorage_LoadStateReturnsCorrectErrorWhenStateIsNotAvailable(t *testing.T) {

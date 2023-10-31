@@ -3,11 +3,12 @@ package sqlite
 import (
 	"context"
 	"database/sql"
-	"github.com/boreq/errors"
-	"github.com/planetary-social/nos-crossposting-service/internal/logging"
 	"math"
 	"sync"
 	"time"
+
+	"github.com/boreq/errors"
+	"github.com/planetary-social/nos-crossposting-service/internal/logging"
 )
 
 type Message struct {
@@ -107,7 +108,15 @@ func (p *PubSub) InitializingQueries() []string {
 }
 
 func (p *PubSub) Publish(topic string, msg Message) error {
-	_, err := p.db.Exec(
+	return p.publish(p.db, topic, msg)
+}
+
+func (p *PubSub) PublishTx(tx *sql.Tx, topic string, msg Message) error {
+	return p.publish(tx, topic, msg)
+}
+
+func (p *PubSub) publish(e executor, topic string, msg Message) error {
+	_, err := e.Exec(
 		"INSERT INTO pubsub VALUES (?, ?, ?, ?, ?, ?)",
 		topic,
 		msg.uuid,
@@ -123,6 +132,20 @@ func (p *PubSub) Subscribe(ctx context.Context, topic string) <-chan *ReceivedMe
 	ch := make(chan *ReceivedMessage)
 	go p.subscribe(ctx, topic, ch)
 	return ch
+}
+
+func (p *PubSub) QueueLength(topic string) (int, error) {
+	row := p.db.QueryRow(
+		"SELECT COUNT(*) FROM pubsub WHERE topic = ?",
+		topic,
+	)
+
+	var count int
+	if err := row.Scan(&count); err != nil {
+		return 0, errors.Wrap(err, "row scan error")
+	}
+
+	return count, nil
 }
 
 func (p *PubSub) subscribe(ctx context.Context, topic string, ch chan *ReceivedMessage) {
@@ -250,4 +273,8 @@ func getNoMessagesBackoff(tick int) time.Duration {
 	a := time.Duration(math.Pow(2, float64(tick-1))) * time.Second
 	b := 30 * time.Second
 	return min(a, b)
+}
+
+type executor interface {
+	Exec(query string, args ...any) (sql.Result, error)
 }

@@ -4,32 +4,27 @@ import (
 	"context"
 	"database/sql"
 
-	watermillsql "github.com/ThreeDotsLabs/watermill-sql/v2/pkg/sql"
 	"github.com/boreq/errors"
+	"github.com/planetary-social/nos-crossposting-service/migrations"
 )
 
-type Migrations struct {
-	db                     *sql.DB
-	watermillSchemaAdapter watermillsql.SchemaAdapter
-	watermilOffsetsAdapter watermillsql.OffsetsAdapter
-	pubsub                 *PubSub
+func NewMigrations(fns *MigrationFns) (migrations.Migrations, error) {
+	return migrations.NewMigrations([]migrations.Migration{
+		migrations.MustNewMigration("initial", fns.Initial),
+		migrations.MustNewMigration("create_pubsub_tables", fns.CreatePubsubTables),
+	})
 }
 
-func NewMigrations(
-	db *sql.DB,
-	watermillSchemaAdapter watermillsql.SchemaAdapter,
-	watermillOffsetsAdapter watermillsql.OffsetsAdapter,
-	pubsub *PubSub,
-) *Migrations {
-	return &Migrations{
-		db:                     db,
-		watermillSchemaAdapter: watermillSchemaAdapter,
-		watermilOffsetsAdapter: watermillOffsetsAdapter,
-		pubsub:                 pubsub,
-	}
+type MigrationFns struct {
+	db     *sql.DB
+	pubsub *PubSub
 }
 
-func (m *Migrations) Execute(ctx context.Context) error {
+func NewMigrationFns(db *sql.DB, pubsub *PubSub) *MigrationFns {
+	return &MigrationFns{db: db, pubsub: pubsub}
+}
+
+func (m *MigrationFns) Initial(ctx context.Context, state migrations.State, saveStateFunc migrations.SaveStateFunc) error {
 	_, err := m.db.Exec(`
 		CREATE TABLE IF NOT EXISTS accounts (
 			account_id TEXT PRIMARY KEY,
@@ -88,22 +83,12 @@ func (m *Migrations) Execute(ctx context.Context) error {
 		return errors.Wrap(err, "error creating the user tokens table")
 	}
 
-	for _, topic := range []string{TweetCreatedTopic} {
-		for _, query := range m.watermillSchemaAdapter.SchemaInitializingQueries(topic) {
-			if _, err = m.db.Exec(query); err != nil {
-				return errors.Wrapf(err, "error initializing watermill schema for topic '%s'", topic)
-			}
-		}
+	return nil
+}
 
-		for _, query := range m.watermilOffsetsAdapter.SchemaInitializingQueries(topic) {
-			if _, err = m.db.Exec(query); err != nil {
-				return errors.Wrapf(err, "error initializing watermill offsets for topic '%s'", topic)
-			}
-		}
-	}
-
+func (m *MigrationFns) CreatePubsubTables(ctx context.Context, state migrations.State, saveStateFunc migrations.SaveStateFunc) error {
 	for _, query := range m.pubsub.InitializingQueries() {
-		if _, err = m.db.Exec(query); err != nil {
+		if _, err := m.db.Exec(query); err != nil {
 			return errors.Wrapf(err, "error initializing pubsub")
 		}
 	}

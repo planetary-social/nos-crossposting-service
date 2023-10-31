@@ -4,11 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/planetary-social/nos-crossposting-service/internal"
-	"github.com/planetary-social/nos-crossposting-service/internal/logging"
 
 	"github.com/boreq/errors"
 	"github.com/hashicorp/go-multierror"
+	"github.com/planetary-social/nos-crossposting-service/internal"
+	"github.com/planetary-social/nos-crossposting-service/internal/logging"
 )
 
 type State map[string]string

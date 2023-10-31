@@ -1,12 +1,11 @@
 package sqlite
 
 import (
+	"database/sql"
 	"encoding/json"
 
-	"github.com/ThreeDotsLabs/watermill"
-	watermillsql "github.com/ThreeDotsLabs/watermill-sql/v2/pkg/sql"
-	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/boreq/errors"
+	"github.com/oklog/ulid/v2"
 	"github.com/planetary-social/nos-crossposting-service/service/domain"
 	"github.com/planetary-social/nos-crossposting-service/service/domain/accounts"
 )
@@ -14,11 +13,12 @@ import (
 const TweetCreatedTopic = "tweet_created"
 
 type Publisher struct {
-	watermillPublisher *watermillsql.Publisher
+	pubsub *PubSub
+	tx     *sql.Tx
 }
 
-func NewPublisher(watermillPublisher *watermillsql.Publisher) *Publisher {
-	return &Publisher{watermillPublisher: watermillPublisher}
+func NewPublisher(pubsub *PubSub, tx *sql.Tx) *Publisher {
+	return &Publisher{pubsub: pubsub, tx: tx}
 }
 
 func (p *Publisher) PublishTweetCreated(accountID accounts.AccountID, tweet domain.Tweet) error {
@@ -34,8 +34,12 @@ func (p *Publisher) PublishTweetCreated(accountID accounts.AccountID, tweet doma
 		return errors.Wrap(err, "error marshaling the transport type")
 	}
 
-	msg := message.NewMessage(watermill.NewULID(), payload)
-	return p.watermillPublisher.Publish(TweetCreatedTopic, msg)
+	msg, err := NewMessage(ulid.Make().String(), payload)
+	if err != nil {
+		return errors.Wrap(err, "error creating a message")
+	}
+
+	return p.pubsub.PublishTx(p.tx, TweetCreatedTopic, msg)
 }
 
 type TweetCreatedEventTransport struct {

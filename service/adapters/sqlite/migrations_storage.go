@@ -3,6 +3,7 @@ package sqlite
 import (
 	"database/sql"
 	"encoding/json"
+
 	"github.com/boreq/errors"
 	"github.com/planetary-social/nos-crossposting-service/migrations"
 )

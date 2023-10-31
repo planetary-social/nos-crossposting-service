@@ -8,7 +8,6 @@ import (
 	"database/sql"
 	"testing"
 
-	"github.com/ThreeDotsLabs/watermill"
 	"github.com/google/wire"
 	"github.com/planetary-social/nos-crossposting-service/internal/fixtures"
 	"github.com/planetary-social/nos-crossposting-service/internal/logging"
@@ -31,6 +30,7 @@ func BuildService(context.Context, config.Config) (Service, func(), error) {
 		loggingSet,
 		adaptersSet,
 		tweetGeneratorSet,
+		migrationsAdaptersSet,
 	)
 	return Service{}, nil, nil
 }
@@ -43,6 +43,7 @@ func BuildTestAdapters(context.Context, testing.TB) (sqlite.TestedItems, func(),
 		sqlitePubsubSet,
 		loggingSet,
 		newTestAdaptersConfig,
+		migrationsAdaptersSet,
 	)
 	return sqlite.TestedItems{}, nil, nil
 }
@@ -61,13 +62,13 @@ func newTestAdaptersConfig(tb testing.TB) (config.Config, error) {
 }
 
 type buildTransactionSqliteAdaptersDependencies struct {
-	LoggerAdapter watermill.LoggerAdapter
+	Logger logging.Logger
 }
 
 func buildTransactionSqliteAdapters(*sql.DB, *sql.Tx, buildTransactionSqliteAdaptersDependencies) (app.Adapters, error) {
 	wire.Build(
 		wire.Struct(new(app.Adapters), "*"),
-		wire.FieldsOf(new(buildTransactionSqliteAdaptersDependencies), "LoggerAdapter"),
+		wire.FieldsOf(new(buildTransactionSqliteAdaptersDependencies), "Logger"),
 
 		sqliteTxAdaptersSet,
 		sqliteTxPubsubSet,
@@ -79,7 +80,7 @@ func buildTransactionSqliteAdapters(*sql.DB, *sql.Tx, buildTransactionSqliteAdap
 func buildTestTransactionSqliteAdapters(*sql.DB, *sql.Tx, buildTransactionSqliteAdaptersDependencies) (sqlite.TestAdapters, error) {
 	wire.Build(
 		wire.Struct(new(sqlite.TestAdapters), "*"),
-		wire.FieldsOf(new(buildTransactionSqliteAdaptersDependencies), "LoggerAdapter"),
+		wire.FieldsOf(new(buildTransactionSqliteAdaptersDependencies), "Logger"),
 
 		sqliteTxAdaptersSet,
 		sqliteTxPubsubSet,
