@@ -92,7 +92,7 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 	receivedEventSubscriber := memorypubsub2.NewReceivedEventSubscriber(receivedEventPubSub, processReceivedEventHandler, logger)
 	sendTweetHandler := app.NewSendTweetHandler(genericTransactionProvider, appTwitter, logger, prometheusPrometheus)
 	pubSub := sqlite.NewPubSub(db, logger)
-	subscriber := sqlite.NewSubscriber(pubSub)
+	subscriber := sqlite.NewSubscriber(pubSub, db)
 	tweetCreatedEventSubscriber := sqlitepubsub.NewTweetCreatedEventSubscriber(sendTweetHandler, subscriber, logger, prometheusPrometheus)
 	migrationsStorage, err := sqlite.NewMigrationsStorage(db)
 	if err != nil {
@@ -132,7 +132,7 @@ func BuildTestAdapters(contextContext context.Context, tb testing.TB) (sqlite.Te
 	genericAdaptersFactoryFn := newTestAdaptersFactoryFn(diBuildTransactionSqliteAdaptersDependencies)
 	genericTransactionProvider := sqlite.NewTestTransactionProvider(db, genericAdaptersFactoryFn)
 	pubSub := sqlite.NewPubSub(db, logger)
-	subscriber := sqlite.NewSubscriber(pubSub)
+	subscriber := sqlite.NewSubscriber(pubSub, db)
 	migrationsStorage, err := sqlite.NewMigrationsStorage(db)
 	if err != nil {
 		cleanup()
