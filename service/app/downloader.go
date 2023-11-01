@@ -235,21 +235,11 @@ func (d *PublicKeyDownloader) storeMetrics() {
 	d.metrics.ReportNumberOfPublicKeyDownloaderRelays(d.publicKey, len(d.downloaders))
 }
 
-func (d *PublicKeyDownloader) refreshRelays(longCtx context.Context) error {
-	fnCtx, fnCtxCancel := context.WithCancel(longCtx)
-	defer fnCtxCancel()
-
-	relayAddresses, err := d.relaySource.GetRelays(fnCtx, d.publicKey)
+func (d *PublicKeyDownloader) refreshRelays(ctx context.Context) error {
+	relayAddressesSet, err := d.getRelayAddresses(ctx)
 	if err != nil {
-		return errors.Wrap(err, "error getting relayAddresses")
+		return errors.Wrap(err, "error getting relay addresses")
 	}
-
-	d.logger.Debug().
-		WithField("numberOfAddresses", len(relayAddresses)).
-		WithField("publicKey", d.publicKey.Hex()).
-		Message("got relay addresses")
-
-	relayAddressesSet := internal.NewSet(relayAddresses)
 
 	d.downloadersLock.Lock()
 	defer d.downloadersLock.Unlock()
@@ -270,13 +260,39 @@ func (d *PublicKeyDownloader) refreshRelays(longCtx context.Context) error {
 				WithField("relayAddress", relayAddress.String()).
 				Message("creating a relay downloader")
 
-			ctx, cancel := context.WithCancel(longCtx)
+			ctx, cancel := context.WithCancel(ctx)
 			go d.downloadMessages(ctx, relayAddress)
 			d.downloaders[relayAddress] = cancel
 		}
 	}
 
 	return nil
+}
+
+func (d *PublicKeyDownloader) getRelayAddresses(ctx context.Context) (*internal.Set[domain.RelayAddress], error) {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	relayAddresses, err := d.relaySource.GetRelays(ctx, d.publicKey)
+	if err != nil {
+		return nil, errors.Wrap(err, "error getting relayAddresses")
+	}
+
+	d.logger.Debug().
+		WithField("numberOfAddresses", len(relayAddresses)).
+		WithField("publicKey", d.publicKey.Hex()).
+		Message("got relay addresses")
+
+	normalizedRelayAddresses := internal.NewEmptySet[domain.RelayAddress]()
+	for _, relayAddress := range relayAddresses {
+		normalizedRelayAddress, err := domain.NormalizeRelayAddress(relayAddress)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error normalizing a relay address '%s'", relayAddress.String())
+		}
+		normalizedRelayAddresses.Put(normalizedRelayAddress)
+	}
+
+	return normalizedRelayAddresses, nil
 }
 
 func (d *PublicKeyDownloader) downloadMessages(ctx context.Context, relayAddress domain.RelayAddress) {
