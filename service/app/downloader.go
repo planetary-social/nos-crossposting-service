@@ -16,7 +16,7 @@ const (
 	howFarIntoThePastToLook               = 24 * time.Hour
 	storeMetricsEvery                     = 30 * time.Second
 	refreshDownloaderPublicKeysEvery      = 1 * time.Minute
-	refreshPublicKeyDownloaderRelaysEvery = 60 * time.Minute
+	refreshPublicKeyDownloaderRelaysEvery = 1 * time.Minute
 )
 
 type ReceivedEventPublisher interface {
