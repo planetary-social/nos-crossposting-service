@@ -103,5 +103,13 @@ func (s *TweetCreatedEventSubscriber) reportMetrics(ctx context.Context) error {
 	}
 
 	s.metrics.ReportSubscriptionQueueLength(sqlite.TweetCreatedTopic, n)
+
+	analysis, err := s.subscriber.TweetCreatedAnalysis(ctx)
+	if err != nil {
+		return errors.Wrap(err, "error reading queue length")
+	}
+
+	s.metrics.ReportTweetCreatedCountPerAccount(analysis.TweetsPerAccountID)
+
 	return nil
 }

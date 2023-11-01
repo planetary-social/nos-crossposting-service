@@ -8,6 +8,7 @@ import (
 	"github.com/planetary-social/nos-crossposting-service/internal/logging"
 	"github.com/planetary-social/nos-crossposting-service/service/app"
 	"github.com/planetary-social/nos-crossposting-service/service/domain"
+	"github.com/planetary-social/nos-crossposting-service/service/domain/accounts"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 )
@@ -34,6 +35,8 @@ const (
 	labelAction               = "action"
 	labelActionValuePostTweet = "postTweet"
 	labelActionValueGetUser   = "getUser"
+
+	labelAccountID = "accountID"
 )
 
 type Prometheus struct {
@@ -46,6 +49,7 @@ type Prometheus struct {
 	relayConnectionStateGauge              *prometheus.GaugeVec
 	twitterAPICallsCounter                 *prometheus.CounterVec
 	purplePagesLookupResultCounter         *prometheus.CounterVec
+	tweetCreatedCountPerAccountGauge       *prometheus.GaugeVec
 
 	registry *prometheus.Registry
 
@@ -74,7 +78,7 @@ func NewPrometheus(logger logging.Logger) (*Prometheus, error) {
 		},
 		[]string{labelTopic},
 	)
-	versionGague := prometheus.NewGaugeVec(
+	versionGauge := prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "version",
 			Help: "This metric exists just to put a commit label on it.",
@@ -115,18 +119,26 @@ func NewPrometheus(logger logging.Logger) (*Prometheus, error) {
 		},
 		[]string{labelResult},
 	)
+	tweetCreatedCountPerAccountGauge := prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "tweet_created_per_account",
+			Help: "Tracks number of tweet created events in the queue per account id.",
+		},
+		[]string{labelAccountID},
+	)
 
 	reg := prometheus.NewRegistry()
 	for _, v := range []prometheus.Collector{
 		applicationHandlerCallsCounter,
 		applicationHandlerCallDurationHistogram,
 		subscriptionQueueLengthGauge,
-		versionGague,
+		versionGauge,
 		numberOfPublicKeyDownloadersGauge,
 		numberOfPublicKeyDownloaderRelaysGauge,
 		relayConnectionStateGauge,
 		twitterAPICallsCounter,
 		purplePagesLookupResultCounter,
+		tweetCreatedCountPerAccountGauge,
 
 		collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}),
 		collectors.NewGoCollector(),
@@ -147,7 +159,7 @@ func NewPrometheus(logger logging.Logger) (*Prometheus, error) {
 				vcsTime = setting.Value
 			}
 		}
-		versionGague.With(prometheus.Labels{labelGo: buildInfo.GoVersion, labelVcsRevision: vcsRevision, labelVcsTime: vcsTime}).Set(1)
+		versionGauge.With(prometheus.Labels{labelGo: buildInfo.GoVersion, labelVcsRevision: vcsRevision, labelVcsTime: vcsTime}).Set(1)
 	}
 
 	return &Prometheus{
@@ -160,6 +172,7 @@ func NewPrometheus(logger logging.Logger) (*Prometheus, error) {
 		relayConnectionStateGauge:              relayConnectionStateGauge,
 		twitterAPICallsCounter:                 twitterAPICallsCounter,
 		purplePagesLookupResultCounter:         purplePagesLookupResultCounter,
+		tweetCreatedCountPerAccountGauge:       tweetCreatedCountPerAccountGauge,
 
 		registry: reg,
 
@@ -234,6 +247,16 @@ func (p *Prometheus) ReportPurplePagesLookupResult(err *error) {
 		labels = prometheus.Labels{labelResult: labelResultValueError}
 	}
 	p.purplePagesLookupResultCounter.With(labels).Inc()
+}
+
+func (p *Prometheus) ReportTweetCreatedCountPerAccount(m map[accounts.AccountID]int) {
+	p.tweetCreatedCountPerAccountGauge.Reset()
+
+	for accountId, count := range m {
+		p.tweetCreatedCountPerAccountGauge.
+			With(prometheus.Labels{labelAccountID: accountId.String()}).
+			Set(float64(count))
+	}
 }
 
 type ApplicationCall struct {

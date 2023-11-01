@@ -138,6 +138,7 @@ type Metrics interface {
 	ReportCallingTwitterAPIToGetAUser(err error)
 	ReportSubscriptionQueueLength(topic string, n int)
 	ReportPurplePagesLookupResult(err *error)
+	ReportTweetCreatedCountPerAccount(map[accounts.AccountID]int)
 }
 
 type ApplicationCall interface {
