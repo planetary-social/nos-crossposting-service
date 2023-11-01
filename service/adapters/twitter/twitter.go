@@ -18,7 +18,7 @@ import (
 
 const (
 	apiLimitWindow         = 15 * time.Minute
-	apiLimitCreateTweet    = 25 // docs claim 200 but it doesn't seem true at all
+	apiLimitCreateTweet    = 50 // docs claim 200 but it doesn't seem true at all
 	apiLimitGetUserDetails = 75
 )
 
