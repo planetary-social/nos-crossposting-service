@@ -38,7 +38,14 @@ func NewRelayConnection(address domain.RelayAddress, logger logging.Logger) *Rel
 func (r *RelayConnection) Run(ctx context.Context) {
 	for {
 		if err := r.run(ctx); err != nil {
-			r.logger.Error().WithError(err).Message("encountered an error")
+			var l logging.Entry
+			if !errors.Is(err, websocket.ErrBadHandshake) {
+				l = r.logger.Error()
+			} else {
+				l = r.logger.Debug()
+			}
+
+			l.WithError(err).Message("encountered an error")
 		}
 
 		select {
