@@ -133,12 +133,12 @@ type Metrics interface {
 	StartApplicationCall(handlerName string) ApplicationCall
 	ReportNumberOfPublicKeyDownloaders(n int)
 	ReportNumberOfPublicKeyDownloaderRelays(publicKey domain.PublicKey, n int)
-	ReportRelayConnectionState(relayAddress domain.RelayAddress, state RelayConnectionState)
+	ReportRelayConnectionState(m map[domain.RelayAddress]RelayConnectionState)
 	ReportCallingTwitterAPIToPostATweet(err error)
 	ReportCallingTwitterAPIToGetAUser(err error)
 	ReportSubscriptionQueueLength(topic string, n int)
 	ReportPurplePagesLookupResult(err *error)
-	ReportTweetCreatedCountPerAccount(map[accounts.AccountID]int)
+	ReportTweetCreatedCountPerAccount(m map[accounts.AccountID]int)
 }
 
 type ApplicationCall interface {

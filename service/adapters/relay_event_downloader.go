@@ -60,9 +60,11 @@ func (d *RelayEventDownloader) storeMetrics() {
 	d.connectionsLock.Lock()
 	defer d.connectionsLock.Unlock()
 
+	m := make(map[domain.RelayAddress]app.RelayConnectionState)
 	for _, connection := range d.connections {
-		d.metrics.ReportRelayConnectionState(connection.Address(), connection.State())
+		m[connection.Address()] = connection.State()
 	}
+	d.metrics.ReportRelayConnectionState(m)
 }
 
 func (r *RelayEventDownloader) getConnection(relayAddress domain.RelayAddress) *RelayConnection {
