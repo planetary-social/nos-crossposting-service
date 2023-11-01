@@ -196,19 +196,12 @@ func (p *Prometheus) ReportNumberOfPublicKeyDownloaderRelays(publicKey domain.Pu
 	p.numberOfPublicKeyDownloaderRelaysGauge.With(prometheus.Labels{labelPublicKey: publicKey.Hex()}).Set(float64(n))
 }
 
-func (p *Prometheus) ReportRelayConnectionState(relayAddress domain.RelayAddress, state app.RelayConnectionState) {
-	switch state {
-	case app.RelayConnectionStateDisconnected:
-		p.relayConnectionStateGauge.With(prometheus.Labels{labelRelayAddress: relayAddress.String(), labelState: app.RelayConnectionStateInitializing.String()}).Set(0)
-		p.relayConnectionStateGauge.With(prometheus.Labels{labelRelayAddress: relayAddress.String(), labelState: app.RelayConnectionStateConnected.String()}).Set(0)
-	case app.RelayConnectionStateConnected:
-		p.relayConnectionStateGauge.With(prometheus.Labels{labelRelayAddress: relayAddress.String(), labelState: app.RelayConnectionStateInitializing.String()}).Set(0)
-		p.relayConnectionStateGauge.With(prometheus.Labels{labelRelayAddress: relayAddress.String(), labelState: app.RelayConnectionStateDisconnected.String()}).Set(0)
-	case app.RelayConnectionStateInitializing:
-		p.relayConnectionStateGauge.With(prometheus.Labels{labelRelayAddress: relayAddress.String(), labelState: app.RelayConnectionStateDisconnected.String()}).Set(0)
-		p.relayConnectionStateGauge.With(prometheus.Labels{labelRelayAddress: relayAddress.String(), labelState: app.RelayConnectionStateConnected.String()}).Set(0)
+func (p *Prometheus) ReportRelayConnectionState(m map[domain.RelayAddress]app.RelayConnectionState) {
+	p.relayConnectionStateGauge.Reset()
+
+	for relayAddress, state := range m {
+		p.relayConnectionStateGauge.With(prometheus.Labels{labelRelayAddress: relayAddress.String(), labelState: state.String()}).Set(1)
 	}
-	p.relayConnectionStateGauge.With(prometheus.Labels{labelRelayAddress: relayAddress.String(), labelState: state.String()}).Set(1)
 }
 
 func (p *Prometheus) ReportCallingTwitterAPIToPostATweet(err error) {
