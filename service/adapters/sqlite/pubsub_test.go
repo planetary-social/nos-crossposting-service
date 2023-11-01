@@ -208,3 +208,25 @@ func TestPubSub_QueueLengthReportsNumberOfElementsInQueue(t *testing.T) {
 		assert.Equal(t, 1, n)
 	}, 10*time.Second, 100*time.Millisecond)
 }
+
+func TestDefaultBackoffManager_GetMessageErrorBackoffStatisticallyFallsWithinCertainEpsilon(t *testing.T) {
+	const numSamples = 1000
+
+	m := sqlite.NewDefaultBackoffManager()
+	for i := 1; i < 10; i++ {
+		var sum float64
+		var avg float64
+
+		for samples := 0; samples < numSamples; samples++ {
+			backoff := m.GetMessageErrorBackoff(i)
+			if samples > numSamples/2 {
+				require.InEpsilonf(t, avg, backoff, 0.15, "failed for i=%d and sample=%d", i, samples)
+			}
+
+			sum += float64(backoff)
+			avg = sum / float64(samples)
+		}
+
+		t.Log(i, time.Duration(avg))
+	}
+}
