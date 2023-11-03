@@ -6,6 +6,7 @@ import (
 
 	"github.com/boreq/errors"
 	"github.com/nbd-wtf/go-nostr"
+	"github.com/nbd-wtf/go-nostr/nip19"
 	"github.com/planetary-social/nos-crossposting-service/internal"
 )
 
@@ -126,6 +127,14 @@ func (e Event) Libevent() nostr.Event {
 
 func (e Event) MarshalJSON() ([]byte, error) {
 	return e.libevent.MarshalJSON()
+}
+
+func (e Event) Nevent() string {
+	nevent, err := nip19.EncodeEvent(e.id.Hex(), nil, e.pubKey.Hex())
+	if err != nil {
+		panic(err)
+	}
+	return nevent
 }
 
 func (e Event) Raw() []byte {
