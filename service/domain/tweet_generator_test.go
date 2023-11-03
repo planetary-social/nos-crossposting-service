@@ -45,7 +45,7 @@ func TestTweetGenerator(t *testing.T) {
 		t.Run(testCase.Name, func(t *testing.T) {
 			libevent := testCase.Event
 
-			authorPublicKey, authorPrivateKey := fixtures.SomeKeyPair()
+			_, authorPrivateKey := fixtures.SomeKeyPair()
 
 			err := libevent.Sign(authorPrivateKey)
 			require.NoError(t, err)
@@ -62,9 +62,10 @@ func TestTweetGenerator(t *testing.T) {
 					[]domain.Tweet{
 						domain.NewTweet(
 							fmt.Sprintf(
-								"Nostr note made by https://njump.me/%s:\n\n%s",
-								authorPublicKey.Npub(),
-								event.Content(),
+								`Some text.
+
+https://njump.me/%s`,
+								event.Nevent(),
 							),
 						),
 					},

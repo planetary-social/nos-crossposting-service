@@ -40,8 +40,6 @@ func (g *TweetGenerator) Generate(event Event) ([]Tweet, error) {
 
 func (g *TweetGenerator) createText(event Event) string {
 	var builder strings.Builder
-	builder.WriteString(fmt.Sprintf("Nostr note made by %s:\n", g.njumpLinkPublicKey(event.PublicKey())))
-	builder.WriteString("\n")
 
 	if utf8.RuneCountInString(event.Content()) <= noteContentMaxLengthInRunes {
 		builder.WriteString(event.Content())
@@ -57,9 +55,11 @@ func (g *TweetGenerator) createText(event Event) string {
 		builder.WriteString("...")
 	}
 
+	builder.WriteString(fmt.Sprintf("\n\n%s", g.njumpLinkEvent(event)))
+
 	return builder.String()
 }
 
-func (g *TweetGenerator) njumpLinkPublicKey(publicKey PublicKey) string {
-	return fmt.Sprintf("https://njump.me/%s", publicKey.Npub())
+func (g *TweetGenerator) njumpLinkEvent(event Event) string {
+	return fmt.Sprintf("https://njump.me/%s", event.Nevent())
 }
