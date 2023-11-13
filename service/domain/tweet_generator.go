@@ -3,6 +3,7 @@ package domain
 import (
 	"fmt"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/boreq/errors"
 	"github.com/planetary-social/nos-crossposting-service/service/domain/content"
@@ -70,17 +71,16 @@ func (g *TweetGenerator) createContent(builder *strings.Builder, elements []cont
 
 			builder.WriteString(element.Text)
 		case content.ElementTypeText:
-			for i, part := range strings.Split(element.Text, " ") {
-				futureTotalLength := builder.Len() + len(part)
-				if futureTotalLength > noteContentMaxLengthInRunes {
-					builder.WriteString(ellipsis)
+			remainingLen := noteContentMaxLengthInRunes - utf8.RuneCountInString(builder.String())
+			numberOfWrittenRunes := 0
+			for _, r := range element.Text {
+				builder.WriteRune(r)
+				numberOfWrittenRunes++
+
+				if numberOfWrittenRunes >= remainingLen {
+					builder.WriteString("...")
 					return nil
 				}
-
-				if i > 0 {
-					builder.WriteString(" ")
-				}
-				builder.WriteString(part)
 			}
 		default:
 			return errors.New("unknown element")
