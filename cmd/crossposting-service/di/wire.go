@@ -15,6 +15,7 @@ import (
 	"github.com/planetary-social/nos-crossposting-service/service/app"
 	"github.com/planetary-social/nos-crossposting-service/service/config"
 	"github.com/planetary-social/nos-crossposting-service/service/domain"
+	"github.com/planetary-social/nos-crossposting-service/service/domain/content"
 )
 
 func BuildService(context.Context, config.Config) (Service, func(), error) {
@@ -94,6 +95,7 @@ var downloaderSet = wire.NewSet(
 )
 
 var tweetGeneratorSet = wire.NewSet(
+	content.NewTransformer,
 	domain.NewTweetGenerator,
 	wire.Bind(new(app.TweetGenerator), new(*domain.TweetGenerator)),
 )
