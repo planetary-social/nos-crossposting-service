@@ -30,6 +30,17 @@ func TestTweetGenerator(t *testing.T) {
 			ExpectedContent: "Some text.",
 		},
 		{
+			Name: "not_a_reply_long_without_spaces",
+			Event: nostr.Event{
+				Kind: domain.EventKindNote.Int(),
+				Tags: []nostr.Tag{
+					[]string{"p", fixtures.SomePublicKey().Hex()},
+				},
+				Content: strings.Repeat("a", 300),
+			},
+			ExpectedContent: strings.Repeat("a", 200) + "...",
+		},
+		{
 			Name: "not_a_reply_long",
 			Event: nostr.Event{
 				Kind: domain.EventKindNote.Int(),
@@ -38,7 +49,18 @@ func TestTweetGenerator(t *testing.T) {
 				},
 				Content: strings.Repeat("Some text. ", 100),
 			},
-			ExpectedContent: "Some text. Some text. Some text. Some text. Some text. Some text. Some text. Some text. Some text. Some text. Some text. Some text. Some text. Some text. Some text. Some text. Some text. Some text....",
+			ExpectedContent: "Some text. Some text. Some text. Some text. Some text. Some text. Some text. Some text. Some text. Some text. Some text. Some text. Some text. Some text. Some text. Some text. Some text. Some text. So...",
+		},
+		{
+			Name: "not_a_reply_huge_link",
+			Event: nostr.Event{
+				Kind: domain.EventKindNote.Int(),
+				Tags: []nostr.Tag{
+					[]string{"p", fixtures.SomePublicKey().Hex()},
+				},
+				Content: "https://example.com/" + strings.Repeat("a", 300),
+			},
+			ExpectedContent: "...",
 		},
 		{
 			Name: "reply",

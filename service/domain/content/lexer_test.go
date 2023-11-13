@@ -133,6 +133,16 @@ func TestLexer(t *testing.T) {
 				},
 			},
 		},
+		{
+			Name: "only_link_with_path",
+			In:   `https://example.com/path`,
+			Out: []content.Token{
+				{
+					Type: content.TokenTypeLink,
+					Text: "https://example.com/path",
+				},
+			},
+		},
 	}
 
 	for _, testCase := range testCases {

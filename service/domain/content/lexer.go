@@ -8,6 +8,15 @@ import (
 	"github.com/boreq/errors"
 )
 
+const (
+	httpColonSlashSlash  = "http://"
+	httpsColonSlashSlash = "https://"
+	nostrColon           = "nostr:"
+	nevent               = "nevent"
+	npub                 = "npub"
+	note                 = "note"
+)
+
 type Token struct {
 	Type TokenType
 	Text string
@@ -168,15 +177,6 @@ func (l *Lexer) mergeConsecutiveTexts(tokens []Token) []Token {
 
 type stateFn func(l *Lexer) (stateFn, error)
 
-const (
-	httpColonSlashSlash  = "http://"
-	httpsColonSlashSlash = "https://"
-	nostrColon           = "nostr:"
-	nevent               = "nevent"
-	npub                 = "npub"
-	note                 = "note"
-)
-
 func stateText(l *Lexer) (stateFn, error) {
 	for {
 		if l.comesNext(httpColonSlashSlash) || l.comesNext(httpsColonSlashSlash) {
@@ -295,7 +295,7 @@ func stateNostrLinkData(l *Lexer) (stateFn, error) {
 }
 
 func isValidLinkCharacterExcludingDot(r rune) bool {
-	return unicode.IsLetter(r) || unicode.IsNumber(r) || r == '%'
+	return unicode.IsLetter(r) || unicode.IsNumber(r) || r == '%' || r == '/'
 }
 
 func isBech32(r rune) bool {
