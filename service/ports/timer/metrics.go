@@ -24,11 +24,13 @@ func NewMetrics(app app.Application, logger logging.Logger) *Metrics {
 
 func (m *Metrics) Run(ctx context.Context) error {
 	for {
+		if err := m.collect(ctx); err != nil {
+			m.logger.Error().WithError(err).Message("error triggering app handler")
+		}
+
 		select {
 		case <-time.After(collectMetricsEvery):
-			if err := m.collect(ctx); err != nil {
-				m.logger.Error().WithError(err).Message("error triggering app handler")
-			}
+			continue
 		case <-ctx.Done():
 			return ctx.Err()
 		}
