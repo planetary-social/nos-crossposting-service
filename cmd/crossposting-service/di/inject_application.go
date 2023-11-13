@@ -23,4 +23,5 @@ var applicationSet = wire.NewSet(
 	app.NewGetTwitterAccountDetailsHandler,
 	app.NewLogoutHandler,
 	app.NewUnlinkPublicKeyHandler,
+	app.NewUpdateMetricsHandler,
 )

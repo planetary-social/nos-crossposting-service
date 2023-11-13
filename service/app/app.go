@@ -32,6 +32,8 @@ type AccountRepository interface {
 	GetByAccountID(accountID accounts.AccountID) (*accounts.Account, error)
 
 	Save(account *accounts.Account) error
+
+	Count() (int, error)
 }
 
 type SessionRepository interface {
@@ -49,6 +51,7 @@ type PublicKeyRepository interface {
 	List() ([]*domain.LinkedPublicKey, error)
 	ListByPublicKey(publicKey domain.PublicKey) ([]*domain.LinkedPublicKey, error)
 	ListByAccountID(accountID accounts.AccountID) ([]*domain.LinkedPublicKey, error)
+	Count() (int, error)
 }
 
 type ProcessedEventRepository interface {
@@ -106,6 +109,7 @@ type Application struct {
 	Logout          *LogoutHandler
 	LinkPublicKey   *LinkPublicKeyHandler
 	UnlinkPublicKey *UnlinkPublicKeyHandler
+	UpdateMetrics   *UpdateMetricsHandler
 }
 
 type ReceivedEvent struct {
@@ -139,6 +143,8 @@ type Metrics interface {
 	ReportSubscriptionQueueLength(topic string, n int)
 	ReportPurplePagesLookupResult(err *error)
 	ReportTweetCreatedCountPerAccount(m map[accounts.AccountID]int)
+	ReportNumberOfAccounts(count int)
+	ReportNumberOfLinkedPublicKeys(count int)
 }
 
 type ApplicationCall interface {
@@ -153,6 +159,15 @@ type AccountIDGenerator interface {
 
 type SessionIDGenerator interface {
 	GenerateSessionID() (sessions.SessionID, error)
+}
+
+type Subscriber interface {
+	TweetCreatedQueueLength(ctx context.Context) (int, error)
+	TweetCreatedAnalysis(ctx context.Context) (TweetCreatedAnalysis, error)
+}
+
+type TweetCreatedAnalysis struct {
+	TweetsPerAccountID map[accounts.AccountID]int
 }
 
 type RelayConnectionState struct {

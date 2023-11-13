@@ -93,6 +93,17 @@ WHERE account_id = $1`,
 	return m.readPublicKeys(rows)
 }
 
+func (m *PublicKeyRepository) Count() (int, error) {
+	row := m.tx.QueryRow("SELECT COUNT(*) FROM public_keys")
+
+	var count int
+	if err := row.Scan(&count); err != nil {
+		return 0, errors.Wrap(err, "row scan error")
+	}
+
+	return count, nil
+}
+
 func (m *PublicKeyRepository) readPublicKeys(rows *sql.Rows) ([]*domain.LinkedPublicKey, error) {
 	var results []*domain.LinkedPublicKey
 	for rows.Next() {

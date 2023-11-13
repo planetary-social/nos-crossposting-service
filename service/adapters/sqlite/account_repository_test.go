@@ -62,3 +62,61 @@ func TestAccountRepository_ItIsPossibleToRetrieveSavedData(t *testing.T) {
 	})
 	require.NoError(t, err)
 }
+
+func TestAccountRepository_CountReturnsNumberOfAccounts(t *testing.T) {
+	ctx := fixtures.TestContext(t)
+	adapters := NewTestAdapters(ctx, t)
+
+	err := adapters.TransactionProvider.Transact(ctx, func(ctx context.Context, adapters sqlite.TestAdapters) error {
+		n, err := adapters.AccountRepository.Count()
+		require.NoError(t, err)
+		require.Equal(t, 0, n)
+
+		return nil
+	})
+	require.NoError(t, err)
+
+	err = adapters.TransactionProvider.Transact(ctx, func(ctx context.Context, adapters sqlite.TestAdapters) error {
+		accountID := fixtures.SomeAccountID()
+		twitterID := fixtures.SomeTwitterID()
+
+		account, err := accounts.NewAccount(accountID, twitterID)
+		require.NoError(t, err)
+		err = adapters.AccountRepository.Save(account)
+		require.NoError(t, err)
+
+		return nil
+	})
+	require.NoError(t, err)
+
+	err = adapters.TransactionProvider.Transact(ctx, func(ctx context.Context, adapters sqlite.TestAdapters) error {
+		n, err := adapters.AccountRepository.Count()
+		require.NoError(t, err)
+		require.Equal(t, 1, n)
+
+		return nil
+	})
+	require.NoError(t, err)
+
+	err = adapters.TransactionProvider.Transact(ctx, func(ctx context.Context, adapters sqlite.TestAdapters) error {
+		accountID := fixtures.SomeAccountID()
+		twitterID := fixtures.SomeTwitterID()
+
+		account, err := accounts.NewAccount(accountID, twitterID)
+		require.NoError(t, err)
+		err = adapters.AccountRepository.Save(account)
+		require.NoError(t, err)
+
+		return nil
+	})
+	require.NoError(t, err)
+
+	err = adapters.TransactionProvider.Transact(ctx, func(ctx context.Context, adapters sqlite.TestAdapters) error {
+		n, err := adapters.AccountRepository.Count()
+		require.NoError(t, err)
+		require.Equal(t, 2, n)
+
+		return nil
+	})
+	require.NoError(t, err)
+}

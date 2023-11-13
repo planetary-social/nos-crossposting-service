@@ -16,8 +16,10 @@ var memoryPubsubSet = wire.NewSet(
 
 var sqlitePubsubSet = wire.NewSet(
 	sqlitepubsubport.NewTweetCreatedEventSubscriber,
-	sqlite.NewSubscriber,
 	sqlite.NewPubSub,
+
+	sqlite.NewSubscriber,
+	wire.Bind(new(app.Subscriber), new(*sqlite.Subscriber)),
 )
 
 var sqliteTxPubsubSet = wire.NewSet(

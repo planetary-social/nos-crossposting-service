@@ -50,6 +50,8 @@ type Prometheus struct {
 	twitterAPICallsCounter                 *prometheus.CounterVec
 	purplePagesLookupResultCounter         *prometheus.CounterVec
 	tweetCreatedCountPerAccountGauge       *prometheus.GaugeVec
+	numberOfAccountsGauge                  prometheus.Gauge
+	numberOfLinkedPublicKeysGauge          prometheus.Gauge
 
 	registry *prometheus.Registry
 
@@ -126,6 +128,18 @@ func NewPrometheus(logger logging.Logger) (*Prometheus, error) {
 		},
 		[]string{labelAccountID},
 	)
+	numberOfAccountsGauge := prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Name: "accounts_count",
+			Help: "Number of accounts.",
+		},
+	)
+	numberOfLinkedPublicKeysGauge := prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Name: "linked_public_keys_count",
+			Help: "Number of linked public keys.",
+		},
+	)
 
 	reg := prometheus.NewRegistry()
 	for _, v := range []prometheus.Collector{
@@ -139,6 +153,8 @@ func NewPrometheus(logger logging.Logger) (*Prometheus, error) {
 		twitterAPICallsCounter,
 		purplePagesLookupResultCounter,
 		tweetCreatedCountPerAccountGauge,
+		numberOfAccountsGauge,
+		numberOfLinkedPublicKeysGauge,
 
 		collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}),
 		collectors.NewGoCollector(),
@@ -173,6 +189,8 @@ func NewPrometheus(logger logging.Logger) (*Prometheus, error) {
 		twitterAPICallsCounter:                 twitterAPICallsCounter,
 		purplePagesLookupResultCounter:         purplePagesLookupResultCounter,
 		tweetCreatedCountPerAccountGauge:       tweetCreatedCountPerAccountGauge,
+		numberOfAccountsGauge:                  numberOfAccountsGauge,
+		numberOfLinkedPublicKeysGauge:          numberOfLinkedPublicKeysGauge,
 
 		registry: reg,
 
@@ -250,6 +268,14 @@ func (p *Prometheus) ReportTweetCreatedCountPerAccount(m map[accounts.AccountID]
 			With(prometheus.Labels{labelAccountID: accountId.String()}).
 			Set(float64(count))
 	}
+}
+
+func (p *Prometheus) ReportNumberOfAccounts(count int) {
+	p.numberOfAccountsGauge.Set(float64(count))
+}
+
+func (p *Prometheus) ReportNumberOfLinkedPublicKeys(count int) {
+	p.numberOfLinkedPublicKeysGauge.Set(float64(count))
 }
 
 type ApplicationCall struct {
