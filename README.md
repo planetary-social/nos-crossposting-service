@@ -96,6 +96,8 @@ Go-related metrics are available. We also have custom metrics:
 - `public_key_downloader_relays_count`
 - `relay_connection_state`
 - `twitter_api_calls`
+- `accounts_count`
+- `linked_public_keys_count`
 
 See `service/adapters/prometheus`.
 

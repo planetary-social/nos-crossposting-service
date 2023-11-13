@@ -56,6 +56,17 @@ ON CONFLICT(account_id) DO UPDATE SET
 	return nil
 }
 
+func (m *AccountRepository) Count() (int, error) {
+	row := m.tx.QueryRow("SELECT COUNT(*) FROM accounts")
+
+	var count int
+	if err := row.Scan(&count); err != nil {
+		return 0, errors.Wrap(err, "row scan error")
+	}
+
+	return count, nil
+}
+
 func (m *AccountRepository) readAccount(result *sql.Row) (*accounts.Account, error) {
 	var accountIDtmp string
 	var twitterIDtmp int64

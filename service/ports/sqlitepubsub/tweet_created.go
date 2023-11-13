@@ -3,7 +3,6 @@ package sqlitepubsub
 import (
 	"context"
 	"encoding/json"
-	"time"
 
 	"github.com/boreq/errors"
 	"github.com/planetary-social/nos-crossposting-service/internal/logging"
@@ -12,8 +11,6 @@ import (
 	"github.com/planetary-social/nos-crossposting-service/service/domain"
 	"github.com/planetary-social/nos-crossposting-service/service/domain/accounts"
 )
-
-const reportMetricsEvery = 60 * time.Second
 
 type SendTweetHandler interface {
 	Handle(ctx context.Context, cmd app.SendTweet) (err error)
@@ -39,10 +36,7 @@ func NewTweetCreatedEventSubscriber(
 		metrics:    metrics,
 	}
 }
-
 func (s *TweetCreatedEventSubscriber) Run(ctx context.Context) error {
-	go s.reportMetricsLoop(ctx)
-
 	for msg := range s.subscriber.SubscribeToTweetCreated(ctx) {
 		if err := s.handleMessage(ctx, msg); err != nil {
 			s.logger.Error().WithError(err).Message("error handling a message")
@@ -76,40 +70,6 @@ func (s *TweetCreatedEventSubscriber) handleMessage(ctx context.Context, msg *sq
 	if err := s.handler.Handle(ctx, cmd); err != nil {
 		return errors.Wrap(err, "error calling the handler")
 	}
-
-	return nil
-}
-
-func (s *TweetCreatedEventSubscriber) reportMetricsLoop(ctx context.Context) {
-	for {
-		if err := s.reportMetrics(ctx); err != nil {
-			s.logger.Error().WithError(err).Message("error reporting metrics")
-		}
-
-		select {
-		case <-time.After(reportMetricsEvery):
-			continue
-		case <-ctx.Done():
-			return
-
-		}
-	}
-}
-
-func (s *TweetCreatedEventSubscriber) reportMetrics(ctx context.Context) error {
-	n, err := s.subscriber.TweetCreatedQueueLength(ctx)
-	if err != nil {
-		return errors.Wrap(err, "error reading queue length")
-	}
-
-	s.metrics.ReportSubscriptionQueueLength(sqlite.TweetCreatedTopic, n)
-
-	analysis, err := s.subscriber.TweetCreatedAnalysis(ctx)
-	if err != nil {
-		return errors.Wrap(err, "error reading queue length")
-	}
-
-	s.metrics.ReportTweetCreatedCountPerAccount(analysis.TweetsPerAccountID)
 
 	return nil
 }

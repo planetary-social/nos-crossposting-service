@@ -10,6 +10,7 @@ import (
 	"github.com/planetary-social/nos-crossposting-service/service/ports/http"
 	"github.com/planetary-social/nos-crossposting-service/service/ports/memorypubsub"
 	"github.com/planetary-social/nos-crossposting-service/service/ports/sqlitepubsub"
+	"github.com/planetary-social/nos-crossposting-service/service/ports/timer"
 )
 
 type Service struct {
@@ -19,6 +20,7 @@ type Service struct {
 	downloader                  *app.Downloader
 	receivedEventSubscriber     *memorypubsub.ReceivedEventSubscriber
 	tweetCreatedEventSubscriber *sqlitepubsub.TweetCreatedEventSubscriber
+	metricsTimer                *timer.Metrics
 	migrationsRunner            *migrations.Runner
 	migrations                  migrations.Migrations
 	migrationsProgressCallback  migrations.ProgressCallback
@@ -31,6 +33,7 @@ func NewService(
 	downloader *app.Downloader,
 	receivedEventSubscriber *memorypubsub.ReceivedEventSubscriber,
 	tweetCreatedEventSubscriber *sqlitepubsub.TweetCreatedEventSubscriber,
+	metricsTimer *timer.Metrics,
 	migrationsRunner *migrations.Runner,
 	migrations migrations.Migrations,
 	migrationsProgressCallback migrations.ProgressCallback,
@@ -42,6 +45,7 @@ func NewService(
 		downloader:                  downloader,
 		receivedEventSubscriber:     receivedEventSubscriber,
 		tweetCreatedEventSubscriber: tweetCreatedEventSubscriber,
+		metricsTimer:                metricsTimer,
 		migrationsRunner:            migrationsRunner,
 		migrations:                  migrations,
 		migrationsProgressCallback:  migrationsProgressCallback,
@@ -86,6 +90,11 @@ func (s Service) Run(ctx context.Context) error {
 	runners++
 	go func() {
 		errCh <- errors.Wrap(s.tweetCreatedEventSubscriber.Run(ctx), "tweet created event subscriber error")
+	}()
+
+	runners++
+	go func() {
+		errCh <- errors.Wrap(s.metricsTimer.Run(ctx), "metrics timer error")
 	}()
 
 	var err error

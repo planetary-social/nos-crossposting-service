@@ -5,6 +5,7 @@ import (
 	"github.com/planetary-social/nos-crossposting-service/service/ports/http"
 	"github.com/planetary-social/nos-crossposting-service/service/ports/http/frontend"
 	"github.com/planetary-social/nos-crossposting-service/service/ports/memorypubsub"
+	"github.com/planetary-social/nos-crossposting-service/service/ports/timer"
 )
 
 var portsSet = wire.NewSet(
@@ -13,4 +14,5 @@ var portsSet = wire.NewSet(
 	frontend.NewFrontendFileSystem,
 
 	memorypubsub.NewReceivedEventSubscriber,
+	timer.NewMetrics,
 )

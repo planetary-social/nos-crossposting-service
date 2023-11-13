@@ -28,6 +28,7 @@ import (
 	"github.com/planetary-social/nos-crossposting-service/service/ports/http/frontend"
 	memorypubsub2 "github.com/planetary-social/nos-crossposting-service/service/ports/memorypubsub"
 	"github.com/planetary-social/nos-crossposting-service/service/ports/sqlitepubsub"
+	"github.com/planetary-social/nos-crossposting-service/service/ports/timer"
 )
 
 // Injectors from wire.go:
@@ -63,6 +64,9 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 	logoutHandler := app.NewLogoutHandler(genericTransactionProvider, logger, prometheusPrometheus)
 	linkPublicKeyHandler := app.NewLinkPublicKeyHandler(genericTransactionProvider, logger, prometheusPrometheus)
 	unlinkPublicKeyHandler := app.NewUnlinkPublicKeyHandler(genericTransactionProvider, logger, prometheusPrometheus)
+	pubSub := sqlite.NewPubSub(db, logger)
+	subscriber := sqlite.NewSubscriber(pubSub, db)
+	updateMetricsHandler := app.NewUpdateMetricsHandler(genericTransactionProvider, subscriber, logger, prometheusPrometheus)
 	application := app.Application{
 		GetSessionAccount:        getSessionAccountHandler,
 		GetAccountPublicKeys:     getAccountPublicKeysHandler,
@@ -71,6 +75,7 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 		Logout:                   logoutHandler,
 		LinkPublicKey:            linkPublicKeyHandler,
 		UnlinkPublicKey:          unlinkPublicKeyHandler,
+		UpdateMetrics:            updateMetricsHandler,
 	}
 	frontendFileSystem, err := frontend.NewFrontendFileSystem()
 	if err != nil {
@@ -93,9 +98,8 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 	processReceivedEventHandler := app.NewProcessReceivedEventHandler(genericTransactionProvider, tweetGenerator, logger, prometheusPrometheus)
 	receivedEventSubscriber := memorypubsub2.NewReceivedEventSubscriber(receivedEventPubSub, processReceivedEventHandler, logger)
 	sendTweetHandler := app.NewSendTweetHandler(genericTransactionProvider, appTwitter, logger, prometheusPrometheus)
-	pubSub := sqlite.NewPubSub(db, logger)
-	subscriber := sqlite.NewSubscriber(pubSub, db)
 	tweetCreatedEventSubscriber := sqlitepubsub.NewTweetCreatedEventSubscriber(sendTweetHandler, subscriber, logger, prometheusPrometheus)
+	metrics := timer.NewMetrics(application, logger)
 	migrationsStorage, err := sqlite.NewMigrationsStorage(db)
 	if err != nil {
 		cleanup()
@@ -109,7 +113,7 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 		return Service{}, nil, err
 	}
 	loggingMigrationsProgressCallback := adapters.NewLoggingMigrationsProgressCallback(logger)
-	service := NewService(application, server, metricsServer, downloader, receivedEventSubscriber, tweetCreatedEventSubscriber, runner, migrationsMigrations, loggingMigrationsProgressCallback)
+	service := NewService(application, server, metricsServer, downloader, receivedEventSubscriber, tweetCreatedEventSubscriber, metrics, runner, migrationsMigrations, loggingMigrationsProgressCallback)
 	return service, func() {
 		cleanup()
 	}, nil

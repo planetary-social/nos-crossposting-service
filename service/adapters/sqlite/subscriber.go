@@ -5,6 +5,7 @@ import (
 	"database/sql"
 
 	"github.com/boreq/errors"
+	"github.com/planetary-social/nos-crossposting-service/service/app"
 	"github.com/planetary-social/nos-crossposting-service/service/domain/accounts"
 )
 
@@ -31,8 +32,8 @@ func (s *Subscriber) TweetCreatedQueueLength(ctx context.Context) (int, error) {
 	return s.pubsub.QueueLength(TweetCreatedTopic)
 }
 
-func (s *Subscriber) TweetCreatedAnalysis(ctx context.Context) (TweetCreatedAnalysis, error) {
-	analysis := TweetCreatedAnalysis{
+func (s *Subscriber) TweetCreatedAnalysis(ctx context.Context) (app.TweetCreatedAnalysis, error) {
+	analysis := app.TweetCreatedAnalysis{
 		TweetsPerAccountID: make(map[accounts.AccountID]int),
 	}
 
@@ -41,7 +42,7 @@ func (s *Subscriber) TweetCreatedAnalysis(ctx context.Context) (TweetCreatedAnal
 		TweetCreatedTopic,
 	)
 	if err != nil {
-		return TweetCreatedAnalysis{}, errors.Wrap(err, "query error")
+		return app.TweetCreatedAnalysis{}, errors.Wrap(err, "query error")
 	}
 
 	for rows.Next() {
@@ -50,20 +51,16 @@ func (s *Subscriber) TweetCreatedAnalysis(ctx context.Context) (TweetCreatedAnal
 			count              int
 		)
 		if err := rows.Scan(&accountIDPrimitive, &count); err != nil {
-			return TweetCreatedAnalysis{}, errors.Wrap(err, "scan error")
+			return app.TweetCreatedAnalysis{}, errors.Wrap(err, "scan error")
 		}
 
 		accountID, err := accounts.NewAccountID(accountIDPrimitive)
 		if err != nil {
-			return TweetCreatedAnalysis{}, errors.Wrap(err, "error creating account id")
+			return app.TweetCreatedAnalysis{}, errors.Wrap(err, "error creating account id")
 		}
 
 		analysis.TweetsPerAccountID[accountID] = count
 	}
 
 	return analysis, nil
-}
-
-type TweetCreatedAnalysis struct {
-	TweetsPerAccountID map[accounts.AccountID]int
 }

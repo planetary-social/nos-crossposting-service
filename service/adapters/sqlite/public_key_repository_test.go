@@ -201,3 +201,61 @@ func TestPublicKeyRepository_DeletingPublicKeysDeletesThem(t *testing.T) {
 	})
 	require.NoError(t, err)
 }
+
+func TestPublicKeyRepository_CountCountsPublicKeys(t *testing.T) {
+	ctx := fixtures.TestContext(t)
+	adapters := NewTestAdapters(ctx, t)
+
+	accountID := fixtures.SomeAccountID()
+	twitterID := fixtures.SomeTwitterID()
+
+	account, err := accounts.NewAccount(accountID, twitterID)
+	require.NoError(t, err)
+
+	err = adapters.TransactionProvider.Transact(ctx, func(ctx context.Context, adapters sqlite.TestAdapters) error {
+		err = adapters.AccountRepository.Save(account)
+		require.NoError(t, err)
+
+		return nil
+	})
+	require.NoError(t, err)
+
+	createdAt := time.Now()
+	publicKey1 := fixtures.SomePublicKey()
+	publicKey2 := fixtures.SomePublicKey()
+
+	linkedPublicKey1, err := domain.NewLinkedPublicKey(accountID, publicKey1, createdAt)
+	require.NoError(t, err)
+
+	linkedPublicKey2, err := domain.NewLinkedPublicKey(accountID, publicKey2, createdAt)
+	require.NoError(t, err)
+
+	err = adapters.TransactionProvider.Transact(ctx, func(ctx context.Context, adapters sqlite.TestAdapters) error {
+		n, err := adapters.PublicKeyRepository.Count()
+		require.NoError(t, err)
+		require.Equal(t, 0, n)
+
+		return nil
+	})
+	require.NoError(t, err)
+
+	err = adapters.TransactionProvider.Transact(ctx, func(ctx context.Context, adapters sqlite.TestAdapters) error {
+		err = adapters.PublicKeyRepository.Save(linkedPublicKey1)
+		require.NoError(t, err)
+
+		err = adapters.PublicKeyRepository.Save(linkedPublicKey2)
+		require.NoError(t, err)
+
+		return nil
+	})
+	require.NoError(t, err)
+
+	err = adapters.TransactionProvider.Transact(ctx, func(ctx context.Context, adapters sqlite.TestAdapters) error {
+		n, err := adapters.PublicKeyRepository.Count()
+		require.NoError(t, err)
+		require.Equal(t, 2, n)
+
+		return nil
+	})
+	require.NoError(t, err)
+}
