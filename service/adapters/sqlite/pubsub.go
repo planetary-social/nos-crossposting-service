@@ -293,11 +293,18 @@ func NewDefaultBackoffManager() DefaultBackoffManager {
 
 func (d DefaultBackoffManager) GetMessageErrorBackoff(nackCount int) time.Duration {
 	a := time.Duration(math.Pow(4, float64(nackCount-1))) * time.Second
+	value := min(a, maxDefaultMessageErrorBackoff)
+	if value <= 0 {
+		value = maxDefaultMessageErrorBackoff
+	}
 	randFraction := 1 - randomizeMessageErrorBackoffByFraction + 2*randomizeMessageErrorBackoffByFraction*rand.Float64()
-	return time.Duration(float64(min(a, maxDefaultMessageErrorBackoff)) * randFraction)
+	return time.Duration(float64(value) * randFraction)
 }
 
 func (d DefaultBackoffManager) GetNoMessagesBackoff(tick int) time.Duration {
 	a := time.Duration(math.Pow(2, float64(tick-1))) * time.Second
+	if a <= 0 {
+		return maxDefaultNoMessagesBackoff
+	}
 	return min(a, maxDefaultNoMessagesBackoff)
 }

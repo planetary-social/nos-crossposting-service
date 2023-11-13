@@ -213,12 +213,14 @@ func TestDefaultBackoffManager_GetMessageErrorBackoffStatisticallyFallsWithinCer
 	const numSamples = 1000
 
 	m := sqlite.NewDefaultBackoffManager()
-	for i := 1; i < 10; i++ {
+	for i := 1; i < 100; i++ {
 		var sum float64
 		var avg float64
 
 		for samples := 0; samples < numSamples; samples++ {
 			backoff := m.GetMessageErrorBackoff(i)
+			require.Positive(t, backoff)
+
 			if samples > numSamples/2 {
 				require.InEpsilonf(t, avg, backoff, 0.15, "failed for i=%d and sample=%d", i, samples)
 			}
@@ -228,5 +230,14 @@ func TestDefaultBackoffManager_GetMessageErrorBackoffStatisticallyFallsWithinCer
 		}
 
 		t.Log(i, time.Duration(avg))
+	}
+}
+
+func TestDefaultBackoffManager_NoMessagesBackoffIsPositive(t *testing.T) {
+	m := sqlite.NewDefaultBackoffManager()
+	for i := 1; i < 100; i++ {
+		backoff := m.GetNoMessagesBackoff(i)
+		t.Log(backoff)
+		require.Positive(t, backoff)
 	}
 }
