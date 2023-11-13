@@ -23,6 +23,7 @@ import (
 	"github.com/planetary-social/nos-crossposting-service/service/app"
 	"github.com/planetary-social/nos-crossposting-service/service/config"
 	"github.com/planetary-social/nos-crossposting-service/service/domain"
+	"github.com/planetary-social/nos-crossposting-service/service/domain/content"
 	"github.com/planetary-social/nos-crossposting-service/service/ports/http"
 	"github.com/planetary-social/nos-crossposting-service/service/ports/http/frontend"
 	memorypubsub2 "github.com/planetary-social/nos-crossposting-service/service/ports/memorypubsub"
@@ -87,7 +88,8 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 	relaySource := adapters.NewRelaySource(logger, purplePages)
 	relayEventDownloader := adapters.NewRelayEventDownloader(contextContext, logger, prometheusPrometheus)
 	downloader := app.NewDownloader(genericTransactionProvider, receivedEventPubSub, logger, prometheusPrometheus, relaySource, relayEventDownloader)
-	tweetGenerator := domain.NewTweetGenerator()
+	transformer := content.NewTransformer()
+	tweetGenerator := domain.NewTweetGenerator(transformer)
 	processReceivedEventHandler := app.NewProcessReceivedEventHandler(genericTransactionProvider, tweetGenerator, logger, prometheusPrometheus)
 	receivedEventSubscriber := memorypubsub2.NewReceivedEventSubscriber(receivedEventPubSub, processReceivedEventHandler, logger)
 	sendTweetHandler := app.NewSendTweetHandler(genericTransactionProvider, appTwitter, logger, prometheusPrometheus)
@@ -242,4 +244,4 @@ type buildTransactionSqliteAdaptersDependencies struct {
 
 var downloaderSet = wire.NewSet(app.NewDownloader)
 
-var tweetGeneratorSet = wire.NewSet(domain.NewTweetGenerator, wire.Bind(new(app.TweetGenerator), new(*domain.TweetGenerator)))
+var tweetGeneratorSet = wire.NewSet(content.NewTransformer, domain.NewTweetGenerator, wire.Bind(new(app.TweetGenerator), new(*domain.TweetGenerator)))
