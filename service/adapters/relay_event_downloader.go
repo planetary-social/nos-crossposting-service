@@ -12,9 +12,6 @@ import (
 
 const (
 	storeMetricsEvery = 30 * time.Second
-
-	reconnectAfter           = 1 * time.Minute
-	manageSubscriptionsEvery = 10 * time.Second
 )
 
 type RelayEventDownloader struct {
