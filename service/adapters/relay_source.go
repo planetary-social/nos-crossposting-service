@@ -67,6 +67,7 @@ func (p RelaySource) getRelaysFromPurplePages(ctx context.Context, publicKey dom
 	if err != nil {
 		if errors.Is(err, ErrRelayListNotFoundInPurplePages) ||
 			errors.Is(err, ErrPurplePagesTimeout) {
+			p.logger.Debug().WithError(err).Message("known error from purple pages")
 			return previousEntries, nil
 		}
 		return nil, errors.Wrap(err, "error querying purple pages")
