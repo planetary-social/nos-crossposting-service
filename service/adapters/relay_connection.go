@@ -2,6 +2,7 @@ package adapters
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"sync"
 	"time"
@@ -164,6 +165,9 @@ func (r *RelayConnection) run(ctx context.Context) error {
 func (r *RelayConnection) handleMessage(messageBytes []byte) error {
 	envelope := nostr.ParseMessage(messageBytes)
 	if envelope == nil {
+		r.logger.Error().
+			WithField("messageBytesAsHex", hex.EncodeToString(messageBytes)).
+			Message("error parsing an incoming message")
 		return errors.New("error parsing message, we are never going to find out what error unfortunately due to the design of this library")
 	}
 
