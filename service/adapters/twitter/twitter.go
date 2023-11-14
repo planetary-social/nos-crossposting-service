@@ -72,6 +72,7 @@ func (t *Twitter) PostTweet(
 	response, err := client.CreateTweet(ctx, twitter.CreateTweetRequest{
 		Text: tweet.Text(),
 	})
+	err = t.convertError(err)
 	t.metrics.ReportCallingTwitterAPIToPostATweet(err)
 	if err != nil {
 		t.logError(err)
@@ -120,6 +121,7 @@ func (t *Twitter) GetAccountDetails(
 			twitter.UserFieldProfileImageURL,
 		},
 	})
+	err = t.convertError(err)
 	t.metrics.ReportCallingTwitterAPIToGetAUser(err)
 	if err != nil {
 		t.logError(err)
@@ -159,6 +161,19 @@ func (t *Twitter) logError(err error) {
 	}
 }
 
+func (t *Twitter) convertError(err error) error {
+	if err == nil {
+		return nil
+	}
+
+	var errorResponse *twitter.ErrorResponse
+	if errors.As(err, &errorResponse) {
+		return NewTwitterError(errorResponse)
+	}
+
+	return err
+}
+
 type userAuthorizer struct {
 	conf             config.Config
 	userAccessToken  accounts.TwitterUserAccessToken
@@ -194,4 +209,30 @@ func (a *userAuthorizer) Add(req *http.Request) {
 
 	authHeader := auth.BuildOAuth1Header(req.Method, req.URL.String(), a.params)
 	req.Header.Set("Authorization", authHeader)
+}
+
+type TwitterError struct {
+	underlying *twitter.ErrorResponse
+}
+
+func NewTwitterError(underlying *twitter.ErrorResponse) TwitterError {
+	return TwitterError{underlying: underlying}
+}
+
+func (t TwitterError) Error() string {
+	return fmt.Sprintf("twitter error: %s", t.underlying)
+}
+
+func (t TwitterError) Unwrap() error {
+	return t.underlying
+}
+
+func (t TwitterError) Description() string {
+	return t.underlying.Title
+}
+
+func (t TwitterError) Is(target error) bool {
+	_, ok1 := target.(TwitterError)
+	_, ok2 := target.(*TwitterError)
+	return ok1 || ok2
 }

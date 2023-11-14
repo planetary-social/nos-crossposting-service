@@ -6,6 +6,8 @@ import (
 	"github.com/boreq/errors"
 )
 
+var ErrExceededLimiterLimit = errors.New("exceeded the limit in limiter")
+
 type Limiter struct {
 	m map[string][]time.Time
 }
@@ -24,7 +26,7 @@ func (l *Limiter) Limit(key string, number int, window time.Duration) error {
 	}
 
 	if len(l.m[key]) > number {
-		return errors.New("exceeded the limit")
+		return ErrExceededLimiterLimit
 	}
 
 	l.m[key] = append(l.m[key], time.Now())

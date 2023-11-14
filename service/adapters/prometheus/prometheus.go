@@ -1,11 +1,13 @@
 package prometheus
 
 import (
+	"fmt"
 	"runtime/debug"
 	"time"
 
 	"github.com/boreq/errors"
 	"github.com/planetary-social/nos-crossposting-service/internal/logging"
+	"github.com/planetary-social/nos-crossposting-service/service/adapters/twitter"
 	"github.com/planetary-social/nos-crossposting-service/service/app"
 	"github.com/planetary-social/nos-crossposting-service/service/domain"
 	"github.com/planetary-social/nos-crossposting-service/service/domain/accounts"
@@ -31,6 +33,8 @@ const (
 	labelResultValueSuccess              = "success"
 	labelResultValueError                = "error"
 	labelResultValueInvalidPointerPassed = "invalidPointerPassed"
+
+	labelErrorDescription = "errorDescription"
 
 	labelAction               = "action"
 	labelActionValuePostTweet = "postTweet"
@@ -64,14 +68,14 @@ func NewPrometheus(logger logging.Logger) (*Prometheus, error) {
 			Name: "application_handler_calls_total",
 			Help: "Total number of calls to application handlers.",
 		},
-		[]string{labelHandlerName, labelResult},
+		[]string{labelHandlerName, labelResult, labelErrorDescription},
 	)
 	applicationHandlerCallDurationHistogram := prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Name: "application_handler_calls_duration",
 			Help: "Duration of calls to application handlers in seconds.",
 		},
-		[]string{labelHandlerName, labelResult},
+		[]string{labelHandlerName, labelResult, labelErrorDescription},
 	)
 	subscriptionQueueLengthGauge := prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
@@ -112,7 +116,7 @@ func NewPrometheus(logger logging.Logger) (*Prometheus, error) {
 			Name: "twitter_api_calls",
 			Help: "Total number of calls to Twitter API to post tweets.",
 		},
-		[]string{labelResult, labelAction},
+		[]string{labelResult, labelAction, labelErrorDescription},
 	)
 	purplePagesLookupResultCounter := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
@@ -224,7 +228,8 @@ func (p *Prometheus) ReportRelayConnectionState(m map[domain.RelayAddress]app.Re
 
 func (p *Prometheus) ReportCallingTwitterAPIToPostATweet(err error) {
 	labels := prometheus.Labels{
-		labelAction: labelActionValuePostTweet,
+		labelAction:           labelActionValuePostTweet,
+		labelErrorDescription: p.getTwitterErrorDescription(err),
 	}
 	if err == nil {
 		labels[labelResult] = labelResultValueSuccess
@@ -236,7 +241,8 @@ func (p *Prometheus) ReportCallingTwitterAPIToPostATweet(err error) {
 
 func (p *Prometheus) ReportCallingTwitterAPIToGetAUser(err error) {
 	labels := prometheus.Labels{
-		labelAction: labelActionValueGetUser,
+		labelAction:           labelActionValueGetUser,
+		labelErrorDescription: p.getTwitterErrorDescription(err),
 	}
 	if err == nil {
 		labels[labelResult] = labelResultValueSuccess
@@ -276,6 +282,19 @@ func (p *Prometheus) ReportNumberOfAccounts(count int) {
 
 func (p *Prometheus) ReportNumberOfLinkedPublicKeys(count int) {
 	p.numberOfLinkedPublicKeysGauge.Set(float64(count))
+}
+
+func (p *Prometheus) getTwitterErrorDescription(err error) string {
+	if err == nil {
+		return "none"
+	}
+
+	var twitterError twitter.TwitterError
+	if errors.As(err, &twitterError) {
+		return fmt.Sprintf("twitter/%s", twitterError.Description())
+	}
+
+	return "unknown"
 }
 
 type ApplicationCall struct {
@@ -319,13 +338,31 @@ func (a *ApplicationCall) getLabels(err *error) prometheus.Labels {
 
 	if err == nil {
 		labels[labelResult] = labelResultValueInvalidPointerPassed
+		labels[labelErrorDescription] = "invalidPointer"
 	} else {
 		if *err == nil {
 			labels[labelResult] = labelResultValueSuccess
 		} else {
 			labels[labelResult] = labelResultValueError
 		}
+		labels[labelErrorDescription] = a.getErrorDescription(*err)
 	}
 
 	return labels
+}
+
+func (a *ApplicationCall) getErrorDescription(err error) string {
+	if err == nil {
+		return "none"
+	}
+
+	if errors.Is(err, twitter.ErrExceededLimiterLimit) {
+		return "twitter/limiter"
+	}
+
+	if errors.Is(err, twitter.TwitterError{}) {
+		return "twitter/error"
+	}
+
+	return "unknown"
 }
