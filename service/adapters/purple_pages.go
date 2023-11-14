@@ -2,6 +2,7 @@ package adapters
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/boreq/errors"
@@ -25,6 +26,7 @@ type PurplePages struct {
 	logger     logging.Logger
 	metrics    app.Metrics
 	connection *RelayConnection
+	mutex      sync.Mutex // purple pages isn't happy when we open too many concurrent requests
 }
 
 func NewPurplePages(
@@ -44,6 +46,9 @@ func NewPurplePages(
 
 func (p *PurplePages) GetRelays(ctx context.Context, publicKey domain.PublicKey) (result []domain.RelayAddress, err error) {
 	defer p.metrics.ReportPurplePagesLookupResult(&err)
+
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
