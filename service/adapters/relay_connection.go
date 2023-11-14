@@ -38,13 +38,10 @@ func NewRelayConnection(address domain.RelayAddress, logger logging.Logger) *Rel
 func (r *RelayConnection) Run(ctx context.Context) {
 	for {
 		if err := r.run(ctx); err != nil {
-			var l logging.Entry
-			if !errors.Is(err, websocket.ErrBadHandshake) {
-				l = r.logger.Error()
-			} else {
+			l := r.logger.Error()
+			if r.errorIsCommonAndShouldNotBeLoggedOnErrorLevel(err) {
 				l = r.logger.Debug()
 			}
-
 			l.WithError(err).Message("encountered an error")
 		}
 
@@ -55,6 +52,18 @@ func (r *RelayConnection) Run(ctx context.Context) {
 			continue
 		}
 	}
+}
+
+func (r *RelayConnection) errorIsCommonAndShouldNotBeLoggedOnErrorLevel(err error) bool {
+	if errors.Is(err, DialError{}) {
+		return true
+	}
+
+	if errors.Is(err, ReadMessageError{}) {
+		return true
+	}
+
+	return false
 }
 
 func (r *RelayConnection) GetEvents(ctx context.Context, publicKey domain.PublicKey, eventKinds []domain.EventKind, maxAge *time.Duration) <-chan app.EventOrEndOfSavedEvents {
@@ -117,7 +126,7 @@ func (r *RelayConnection) run(ctx context.Context) error {
 
 	conn, _, err := websocket.DefaultDialer.DialContext(ctx, r.address.String(), nil)
 	if err != nil {
-		return errors.Wrap(err, "error dialing the relay")
+		return NewDialError(err)
 	}
 
 	r.setState(app.RelayConnectionStateConnected)
@@ -143,7 +152,7 @@ func (r *RelayConnection) run(ctx context.Context) error {
 	for {
 		_, messageBytes, err := conn.ReadMessage()
 		if err != nil {
-			return errors.Wrap(err, "error reading a message")
+			return NewReadMessageError(err)
 		}
 
 		if err := r.handleMessage(messageBytes); err != nil {
@@ -307,4 +316,48 @@ type subscription struct {
 	publicKey  domain.PublicKey
 	eventKinds []domain.EventKind
 	maxAge     *time.Duration
+}
+
+type DialError struct {
+	underlying error
+}
+
+func NewDialError(underlying error) DialError {
+	return DialError{underlying: underlying}
+}
+
+func (t DialError) Error() string {
+	return fmt.Sprintf("error dialing the relay: %s", t.underlying)
+}
+
+func (t DialError) Unwrap() error {
+	return t.underlying
+}
+
+func (t DialError) Is(target error) bool {
+	_, ok1 := target.(DialError)
+	_, ok2 := target.(*DialError)
+	return ok1 || ok2
+}
+
+type ReadMessageError struct {
+	underlying error
+}
+
+func NewReadMessageError(underlying error) ReadMessageError {
+	return ReadMessageError{underlying: underlying}
+}
+
+func (t ReadMessageError) Error() string {
+	return fmt.Sprintf("error reading a message from websocket: %s", t.underlying)
+}
+
+func (t ReadMessageError) Unwrap() error {
+	return t.underlying
+}
+
+func (t ReadMessageError) Is(target error) bool {
+	_, ok1 := target.(ReadMessageError)
+	_, ok2 := target.(*ReadMessageError)
+	return ok1 || ok2
 }
