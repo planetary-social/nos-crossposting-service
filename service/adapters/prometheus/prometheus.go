@@ -7,6 +7,7 @@ import (
 
 	"github.com/boreq/errors"
 	"github.com/planetary-social/nos-crossposting-service/internal/logging"
+	"github.com/planetary-social/nos-crossposting-service/service/adapters"
 	"github.com/planetary-social/nos-crossposting-service/service/adapters/twitter"
 	"github.com/planetary-social/nos-crossposting-service/service/app"
 	"github.com/planetary-social/nos-crossposting-service/service/domain"
@@ -123,7 +124,7 @@ func NewPrometheus(logger logging.Logger) (*Prometheus, error) {
 			Name: "purple_pages_lookups",
 			Help: "Number of purple pages lookups.",
 		},
-		[]string{labelResult},
+		[]string{labelResult, labelErrorDescription},
 	)
 	tweetCreatedCountPerAccountGauge := prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
@@ -257,11 +258,13 @@ func (p *Prometheus) ReportSubscriptionQueueLength(topic string, n int) {
 }
 
 func (p *Prometheus) ReportPurplePagesLookupResult(err *error) {
-	var labels prometheus.Labels
-	if *err == nil {
-		labels = prometheus.Labels{labelResult: labelResultValueSuccess}
-	} else {
-		labels = prometheus.Labels{labelResult: labelResultValueError}
+	labels := prometheus.Labels{
+		labelResult:           labelResultValueSuccess,
+		labelErrorDescription: "none",
+	}
+	if *err != nil {
+		labels[labelResult] = labelResultValueError
+		labels[labelErrorDescription] = p.getPurplePagesErrorDescription(*err)
 	}
 	p.purplePagesLookupResultCounter.With(labels).Inc()
 }
@@ -292,6 +295,14 @@ func (p *Prometheus) getTwitterErrorDescription(err error) string {
 	var twitterError twitter.TwitterError
 	if errors.As(err, &twitterError) {
 		return fmt.Sprintf("twitter/%s", twitterError.Description())
+	}
+
+	return "unknown"
+}
+
+func (p *Prometheus) getPurplePagesErrorDescription(err error) string {
+	if errors.Is(err, adapters.ErrRelayListNotFoundInPurplePages) {
+		return "notFound"
 	}
 
 	return "unknown"
