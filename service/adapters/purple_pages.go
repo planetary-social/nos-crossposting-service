@@ -15,12 +15,15 @@ import (
 
 var (
 	ErrRelayListNotFoundInPurplePages = errors.New("relay list not found in purple pages")
-	ErrPurplePagesTimeout             = errors.New("purple pages lookup timed out")
+
+	errLookupFoundNoEvents = errors.New("lookup found no events")
 )
 
 var purplePagesAddress = domain.MustNewRelayAddress("wss://purplepag.es")
 
 const purplePagesLookupTimeout = 10 * time.Second
+
+const numLookups = 2
 
 type PurplePages struct {
 	logger     logging.Logger
@@ -79,26 +82,34 @@ func (p *PurplePages) GetRelays(ctx context.Context, publicKey domain.PublicKey)
 
 	results := internal.NewEmptySet[domain.RelayAddress]()
 
-	var compoundError error
-	errorsCounter := 0
+	var compoundError *multierror.Error
 
-	for i := 0; i < 2; i++ {
+	for i := 0; i < numLookups; i++ {
 		result := <-ch
-
 		if err := result.Err; err != nil {
-			if errors.Is(err, ErrPurplePagesTimeout) {
-				return nil, errors.Wrap(err, "one of the lookups timed out")
+			if !errors.Is(err, errLookupFoundNoEvents) {
+				return nil, errors.Wrap(err, "one of the lookups failed")
 			}
-
 			compoundError = multierror.Append(compoundError, err)
-			errorsCounter++
 			continue
 		}
 		results.PutMany(result.Addresses)
 	}
 
-	if errorsCounter == 2 {
-		return nil, compoundError
+	// if any of the lookups failed with err != errLookupFoundNoEvents return compoundErr
+	// if all of the lookups failed with err == errLookupFoundNoEvents return ErrRelayListNotFoundInPurplePages
+	if compoundError != nil {
+		errLookupFoundNoEventsCounter := 0
+		for _, componentErr := range compoundError.Errors {
+			if !errors.Is(componentErr, errLookupFoundNoEvents) {
+				return nil, errors.Wrap(compoundError, "some lookups failed")
+			}
+			errLookupFoundNoEventsCounter++
+		}
+
+		if errLookupFoundNoEventsCounter == numLookups {
+			return nil, ErrRelayListNotFoundInPurplePages
+		}
 	}
 
 	return results.List(), nil
@@ -117,7 +128,7 @@ func (p *PurplePages) getRelaysFromRelayMetadata(ctx context.Context, publicKey 
 		nil,
 	) {
 		if eventOrEOSE.EOSE() {
-			return nil, ErrRelayListNotFoundInPurplePages
+			return nil, errLookupFoundNoEvents
 		}
 
 		event := eventOrEOSE.Event()
@@ -140,7 +151,7 @@ func (p *PurplePages) getRelaysFromRelayMetadata(ctx context.Context, publicKey 
 		}
 	}
 
-	return nil, ErrPurplePagesTimeout
+	return nil, errors.New("timeout")
 }
 
 func (p *PurplePages) getRelaysFromContacts(ctx context.Context, publicKey domain.PublicKey) ([]domain.RelayAddress, error) {
@@ -156,7 +167,7 @@ func (p *PurplePages) getRelaysFromContacts(ctx context.Context, publicKey domai
 		nil,
 	) {
 		if eventOrEOSE.EOSE() {
-			return nil, ErrRelayListNotFoundInPurplePages
+			return nil, errLookupFoundNoEvents
 		}
 
 		event := eventOrEOSE.Event()
@@ -173,7 +184,7 @@ func (p *PurplePages) getRelaysFromContacts(ctx context.Context, publicKey domai
 		}
 	}
 
-	return nil, ErrPurplePagesTimeout
+	return nil, errors.New("timeout")
 }
 
 type relaysOrError struct {
