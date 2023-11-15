@@ -174,13 +174,18 @@ func (p *PurplePages) getRelaysFromContacts(ctx context.Context, publicKey domai
 
 		switch event.Kind() {
 		case domain.EventKindContacts:
-			result, err := domain.GetRelaysFromContactsEvent(event)
+			result, err := domain.GetRelaysFromContactsEvent(
+				p.logger.New("getRelaysFromContactsEvent"),
+				event,
+			)
 			if err != nil {
-				p.logger.
-					Debug().
-					WithError(err).
-					WithField("eventContent", event.Content()).
-					Message("error extracting relays from contacts event")
+				if event.Content() != "" {
+					p.logger.
+						Debug().
+						WithError(err).
+						WithField("eventContent", event.Content()).
+						Message("error extracting relays from contacts event")
+				}
 				return nil, errLookupFoundNoEvents
 			}
 			return result, nil
