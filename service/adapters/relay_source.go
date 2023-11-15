@@ -40,7 +40,7 @@ func (p RelaySource) GetRelays(ctx context.Context, publicKey domain.PublicKey) 
 		result.Put(relayAddress)
 	}
 
-	relayAddressesFromPurplePages, err := p.getRelaysFromPurplePages(ctx, publicKey)
+	relayAddressesFromPurplePages, err := p.getRelaysFromPurplePagesOrCache(ctx, publicKey)
 	if err != nil {
 		return nil, errors.Wrap(err, "error getting relays from purple pages")
 	}
@@ -52,7 +52,7 @@ func (p RelaySource) GetRelays(ctx context.Context, publicKey domain.PublicKey) 
 	return result.List(), nil
 }
 
-func (p RelaySource) getRelaysFromPurplePages(ctx context.Context, publicKey domain.PublicKey) ([]domain.RelayAddress, error) {
+func (p RelaySource) getRelaysFromPurplePagesOrCache(ctx context.Context, publicKey domain.PublicKey) ([]domain.RelayAddress, error) {
 	var previousEntries []domain.RelayAddress
 
 	entry, ok := p.cache.Get(publicKey)
@@ -63,18 +63,24 @@ func (p RelaySource) getRelaysFromPurplePages(ctx context.Context, publicKey dom
 		}
 	}
 
-	relayAddressesFromPurplePages, err := p.purplePages.GetRelays(ctx, publicKey)
+	relayAddressesFromPurplePages, err := p.getRelaysFromPurplePages(ctx, publicKey)
 	if err != nil {
-		if errors.Is(err, ErrRelayListNotFoundInPurplePages) ||
-			errors.Is(err, ErrPurplePagesTimeout) {
-			p.logger.Debug().WithError(err).Message("known error from purple pages")
-			return previousEntries, nil
-		}
 		return nil, errors.Wrap(err, "error querying purple pages")
 	}
 
 	p.cache.Set(publicKey, relayAddressesFromPurplePages)
+	return relayAddressesFromPurplePages, nil
+}
 
+func (p RelaySource) getRelaysFromPurplePages(ctx context.Context, publicKey domain.PublicKey) ([]domain.RelayAddress, error) {
+	relayAddressesFromPurplePages, err := p.purplePages.GetRelays(ctx, publicKey)
+	if err != nil {
+		if errors.Is(err, ErrRelayListNotFoundInPurplePages) {
+			p.logger.Debug().WithError(err).Message("relay list not found in purple pages")
+			return nil, nil
+		}
+		return nil, errors.Wrap(err, "error querying purple pages")
+	}
 	return relayAddressesFromPurplePages, nil
 }
 
