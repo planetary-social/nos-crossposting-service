@@ -16,12 +16,6 @@ import (
 	"github.com/planetary-social/nos-crossposting-service/service/domain/sessions"
 )
 
-func Context(tb testing.TB) context.Context {
-	ctx, cancelFunc := context.WithCancel(context.Background())
-	tb.Cleanup(cancelFunc)
-	return ctx
-}
-
 func somePrivateKeyHex() string {
 	return nostr.GeneratePrivateKey()
 }
