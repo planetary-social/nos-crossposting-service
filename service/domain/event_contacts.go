@@ -5,9 +5,10 @@ import (
 
 	"github.com/boreq/errors"
 	"github.com/planetary-social/nos-crossposting-service/internal"
+	"github.com/planetary-social/nos-crossposting-service/internal/logging"
 )
 
-func GetRelaysFromContactsEvent(event Event) ([]RelayAddress, error) {
+func GetRelaysFromContactsEvent(logger logging.Logger, event Event) ([]RelayAddress, error) {
 	if event.Kind() != EventKindContacts {
 		return nil, errors.New("incorrect event kind")
 	}
@@ -22,7 +23,11 @@ func GetRelaysFromContactsEvent(event Event) ([]RelayAddress, error) {
 	for addressString := range t {
 		address, err := NewRelayAddress(addressString)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error creating an address from '%s'", addressString)
+			logger.
+				Debug().
+				WithField("addressString", addressString).
+				Message("error creating an address")
+			continue
 		}
 		results.Put(address)
 	}
