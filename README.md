@@ -1,5 +1,41 @@
 # Nos Crossposting Service
 
+A service which grabs nostr notes and posts them to Twitter as tweets. Right now
+it only supports notes that aren't replies. The user opens the website, logs in
+with their Twitter account and sets a list of npubs from which notes will be
+cross-posted to their Twitter account.
+
+## Design
+
+### Retrieving relays
+
+The idea behind the service is that it is pretty simple and easy to use. Because
+of this we just ask the users to paste their npub in and ignore the matter of
+their relays completely. Instead, we try to grab their relays from [Purple
+Pages][purplepages] in the background. As it stands now it would seem that we
+can't grab relay lists for ~50% of feeds. This is a problem that will hopefully
+be rectified in the future in some way, perhaps by creating a service similar to
+Purple Pages that crawls relays more aggressively.
+
+### Twitter API errors
+
+Posting tweets via the Twitter API seems to be failing often. We mostly get two
+kinds of errors:
+- rate limit exceeded
+- unauthorized
+
+I am not sure where the first one comes from since we are not exceeding rate
+limits but perhaps it is somehow related to personal per-account limits of
+Twitter accounts we are trying to post to. Unfortunately the API documentation
+isn't helpful and doesn't explain this. The second one probably comes from users
+revoking access for the app used by this service in their account settings.
+
+If a tweet is stuck in the queue and can't be posted for a certain amount of
+time we give up on posting it after several days and simply drop it completely.
+The reasoning is that suddenly seeing tweets for notes that are quite old would
+be confusing and probably not desired. Additionally there is almost no chance
+that we will ever manage to post those tweets based on the metrics I am seeing.
+
 ## Building and running
 
 Build the program like so:
@@ -185,3 +221,5 @@ used in the following cases:
 [code-review-comments]: https://github.com/golang/go/wiki/CodeReviewComments
 [uber-style-guide]: https://github.com/uber-go/guide/blob/master/style.md
 
+
+[purplepages]: https://purplepag.es
