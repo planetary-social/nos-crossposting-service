@@ -17,6 +17,7 @@ import (
 	"github.com/planetary-social/nos-crossposting-service/migrations"
 	"github.com/planetary-social/nos-crossposting-service/service/adapters"
 	"github.com/planetary-social/nos-crossposting-service/service/adapters/memorypubsub"
+	"github.com/planetary-social/nos-crossposting-service/service/adapters/mocks"
 	"github.com/planetary-social/nos-crossposting-service/service/adapters/prometheus"
 	"github.com/planetary-social/nos-crossposting-service/service/adapters/sqlite"
 	"github.com/planetary-social/nos-crossposting-service/service/adapters/twitter"
@@ -97,8 +98,9 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 	tweetGenerator := domain.NewTweetGenerator(transformer)
 	processReceivedEventHandler := app.NewProcessReceivedEventHandler(genericTransactionProvider, tweetGenerator, logger, prometheusPrometheus)
 	receivedEventSubscriber := memorypubsub2.NewReceivedEventSubscriber(receivedEventPubSub, processReceivedEventHandler, logger)
-	sendTweetHandler := app.NewSendTweetHandler(genericTransactionProvider, appTwitter, logger, prometheusPrometheus)
-	tweetCreatedEventSubscriber := sqlitepubsub.NewTweetCreatedEventSubscriber(sendTweetHandler, subscriber, logger, prometheusPrometheus)
+	currentTimeProvider := adapters.NewCurrentTimeProvider()
+	sendTweetHandler := app.NewSendTweetHandler(genericTransactionProvider, appTwitter, currentTimeProvider, logger, prometheusPrometheus)
+	tweetCreatedEventSubscriber := sqlitepubsub.NewTweetCreatedEventSubscriber(sendTweetHandler, subscriber, logger)
 	metrics := timer.NewMetrics(application, logger)
 	migrationsStorage, err := sqlite.NewMigrationsStorage(db)
 	if err != nil {
@@ -164,6 +166,54 @@ func BuildTestAdapters(contextContext context.Context, tb testing.TB) (sqlite.Te
 	return testedItems, func() {
 		cleanup()
 	}, nil
+}
+
+func BuildTestApplication(tb testing.TB) (TestApplication, error) {
+	accountRepository, err := mocks.NewAccountRepository()
+	if err != nil {
+		return TestApplication{}, err
+	}
+	sessionRepository, err := mocks.NewSessionRepository()
+	if err != nil {
+		return TestApplication{}, err
+	}
+	publicKeyRepository, err := mocks.NewPublicKeyRepository()
+	if err != nil {
+		return TestApplication{}, err
+	}
+	processedEventRepository, err := mocks.NewProcessedEventRepository()
+	if err != nil {
+		return TestApplication{}, err
+	}
+	userTokensRepository, err := mocks.NewUserTokensRepository()
+	if err != nil {
+		return TestApplication{}, err
+	}
+	publisher := mocks.NewPublisher()
+	appAdapters := app.Adapters{
+		Accounts:        accountRepository,
+		Sessions:        sessionRepository,
+		PublicKeys:      publicKeyRepository,
+		ProcessedEvents: processedEventRepository,
+		UserTokens:      userTokensRepository,
+		Publisher:       publisher,
+	}
+	transactionProvider := mocks.NewTransactionProvider(appAdapters)
+	mocksTwitter := mocks.NewTwitter()
+	currentTimeProvider := mocks.NewCurrentTimeProvider()
+	logger := fixtures.TestLogger(tb)
+	prometheusPrometheus, err := prometheus.NewPrometheus(logger)
+	if err != nil {
+		return TestApplication{}, err
+	}
+	sendTweetHandler := app.NewSendTweetHandler(transactionProvider, mocksTwitter, currentTimeProvider, logger, prometheusPrometheus)
+	testApplication := TestApplication{
+		SendTweetHandler:     sendTweetHandler,
+		CurrentTimeProvider:  currentTimeProvider,
+		UserTokensRepository: userTokensRepository,
+		Twitter:              mocksTwitter,
+	}
+	return testApplication, nil
 }
 
 func buildTransactionSqliteAdapters(db *sql.DB, tx *sql.Tx, diBuildTransactionSqliteAdaptersDependencies buildTransactionSqliteAdaptersDependencies) (app.Adapters, error) {
@@ -237,6 +287,14 @@ func buildTestTransactionSqliteAdapters(db *sql.DB, tx *sql.Tx, diBuildTransacti
 }
 
 // wire.go:
+
+type TestApplication struct {
+	SendTweetHandler *app.SendTweetHandler
+
+	CurrentTimeProvider  *mocks.CurrentTimeProvider
+	UserTokensRepository *mocks.UserTokensRepository
+	Twitter              *mocks.Twitter
+}
 
 func newTestAdaptersConfig(tb testing.TB) (config.Config, error) {
 	return config.NewConfig(fixtures.SomeString(), fixtures.SomeString(), config.EnvironmentDevelopment, logging.LevelDebug, fixtures.SomeString(), fixtures.SomeString(), fixtures.SomeFile(tb), fixtures.SomeString())

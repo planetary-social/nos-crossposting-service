@@ -7,6 +7,7 @@ import (
 	"github.com/google/wire"
 	"github.com/planetary-social/nos-crossposting-service/internal/logging"
 	"github.com/planetary-social/nos-crossposting-service/service/adapters"
+	"github.com/planetary-social/nos-crossposting-service/service/adapters/mocks"
 	"github.com/planetary-social/nos-crossposting-service/service/adapters/prometheus"
 	"github.com/planetary-social/nos-crossposting-service/service/adapters/sqlite"
 	"github.com/planetary-social/nos-crossposting-service/service/adapters/twitter"
@@ -73,6 +74,45 @@ var adaptersSet = wire.NewSet(
 
 	adapters.NewTwitterAccountDetailsCache,
 	wire.Bind(new(app.TwitterAccountDetailsCache), new(*adapters.TwitterAccountDetailsCache)),
+
+	adapters.NewCurrentTimeProvider,
+	wire.Bind(new(app.CurrentTimeProvider), new(*adapters.CurrentTimeProvider)),
+)
+
+var testAdaptersSet = wire.NewSet(
+	prometheus.NewPrometheus,
+	wire.Bind(new(app.Metrics), new(*prometheus.Prometheus)),
+
+	mocks.NewTwitter,
+	wire.Bind(new(app.Twitter), new(*mocks.Twitter)),
+
+	mocks.NewCurrentTimeProvider,
+	wire.Bind(new(app.CurrentTimeProvider), new(*mocks.CurrentTimeProvider)),
+)
+
+var mockTxAdaptersSet = wire.NewSet(
+	mocks.NewTransactionProvider,
+	wire.Bind(new(app.TransactionProvider), new(*mocks.TransactionProvider)),
+
+	wire.Struct(new(app.Adapters), "*"),
+
+	mocks.NewAccountRepository,
+	wire.Bind(new(app.AccountRepository), new(*mocks.AccountRepository)),
+
+	mocks.NewSessionRepository,
+	wire.Bind(new(app.SessionRepository), new(*mocks.SessionRepository)),
+
+	mocks.NewPublicKeyRepository,
+	wire.Bind(new(app.PublicKeyRepository), new(*mocks.PublicKeyRepository)),
+
+	mocks.NewProcessedEventRepository,
+	wire.Bind(new(app.ProcessedEventRepository), new(*mocks.ProcessedEventRepository)),
+
+	mocks.NewUserTokensRepository,
+	wire.Bind(new(app.UserTokensRepository), new(*mocks.UserTokensRepository)),
+
+	mocks.NewPublisher,
+	wire.Bind(new(app.Publisher), new(*mocks.Publisher)),
 )
 
 func newAdaptersFactoryFn(deps buildTransactionSqliteAdaptersDependencies) sqlite.AdaptersFactoryFn {

@@ -8,9 +8,11 @@ import (
 	"math/rand"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/nbd-wtf/go-nostr"
 	"github.com/planetary-social/nos-crossposting-service/internal"
+	"github.com/planetary-social/nos-crossposting-service/internal/logging"
 	"github.com/planetary-social/nos-crossposting-service/service/domain"
 	"github.com/planetary-social/nos-crossposting-service/service/domain/accounts"
 	"github.com/planetary-social/nos-crossposting-service/service/domain/sessions"
@@ -128,6 +130,51 @@ func TestContext(t testing.TB) context.Context {
 
 func SomeError() error {
 	return fmt.Errorf("some error: %d", rand.Int())
+}
+
+func SomeTwitterUserAccessToken() accounts.TwitterUserAccessToken {
+	v, err := accounts.NewTwitterUserAccessToken(SomeString())
+	if err != nil {
+		panic(err)
+	}
+	return v
+}
+
+func SomeTwitterUserAccessSecret() accounts.TwitterUserAccessSecret {
+	v, err := accounts.NewTwitterUserAccessSecret(SomeString())
+	if err != nil {
+		panic(err)
+	}
+	return v
+}
+
+func SomeEventWithCreatedAt(createdAt time.Time) domain.Event {
+	_, sk := SomeKeyPair()
+
+	libevent := nostr.Event{
+		CreatedAt: nostr.Timestamp(createdAt.Unix()),
+		Kind:      domain.EventKindNote.Int(),
+		Content:   SomeString(),
+	}
+	err := libevent.Sign(sk)
+	if err != nil {
+		panic(err)
+	}
+
+	event, err := domain.NewEvent(libevent)
+	if err != nil {
+		panic(err)
+	}
+
+	return event
+}
+
+func SomeEvent() domain.Event {
+	return SomeEventWithCreatedAt(time.Now())
+}
+
+func TestLogger(tb testing.TB) logging.Logger {
+	return logging.NewSystemLogger(logging.NewTestingLoggingSystem(tb), "test")
 }
 
 var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
