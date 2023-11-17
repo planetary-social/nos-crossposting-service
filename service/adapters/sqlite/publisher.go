@@ -3,11 +3,11 @@ package sqlite
 import (
 	"database/sql"
 	"encoding/json"
+	"time"
 
 	"github.com/boreq/errors"
 	"github.com/oklog/ulid/v2"
-	"github.com/planetary-social/nos-crossposting-service/service/domain"
-	"github.com/planetary-social/nos-crossposting-service/service/domain/accounts"
+	"github.com/planetary-social/nos-crossposting-service/service/app"
 )
 
 const TweetCreatedTopic = "tweet_created"
@@ -21,12 +21,14 @@ func NewPublisher(pubsub *PubSub, tx *sql.Tx) *Publisher {
 	return &Publisher{pubsub: pubsub, tx: tx}
 }
 
-func (p *Publisher) PublishTweetCreated(accountID accounts.AccountID, tweet domain.Tweet) error {
+func (p *Publisher) PublishTweetCreated(event app.TweetCreatedEvent) error {
 	transport := TweetCreatedEventTransport{
-		AccountID: accountID.String(),
+		AccountID: event.AccountID().String(),
 		Tweet: TweetTransport{
-			Text: tweet.Text(),
+			Text: event.Tweet().Text(),
 		},
+		Event:     event.Event().Raw(),
+		CreatedAt: event.CreatedAt(),
 	}
 
 	payload, err := json.Marshal(transport)
@@ -45,6 +47,8 @@ func (p *Publisher) PublishTweetCreated(accountID accounts.AccountID, tweet doma
 type TweetCreatedEventTransport struct {
 	AccountID string         `json:"accountID"`
 	Tweet     TweetTransport `json:"tweet"`
+	Event     []byte         `json:"event"`
+	CreatedAt *time.Time     `json:"createdAt"`
 }
 
 type TweetTransport struct {

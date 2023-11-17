@@ -11,6 +11,7 @@ import (
 	"github.com/google/wire"
 	"github.com/planetary-social/nos-crossposting-service/internal/fixtures"
 	"github.com/planetary-social/nos-crossposting-service/internal/logging"
+	"github.com/planetary-social/nos-crossposting-service/service/adapters/mocks"
 	"github.com/planetary-social/nos-crossposting-service/service/adapters/sqlite"
 	"github.com/planetary-social/nos-crossposting-service/service/app"
 	"github.com/planetary-social/nos-crossposting-service/service/config"
@@ -47,6 +48,27 @@ func BuildTestAdapters(context.Context, testing.TB) (sqlite.TestedItems, func(),
 		migrationsAdaptersSet,
 	)
 	return sqlite.TestedItems{}, nil, nil
+}
+
+type TestApplication struct {
+	SendTweetHandler *app.SendTweetHandler
+
+	CurrentTimeProvider  *mocks.CurrentTimeProvider
+	UserTokensRepository *mocks.UserTokensRepository
+	Twitter              *mocks.Twitter
+}
+
+func BuildTestApplication(tb testing.TB) (TestApplication, error) {
+	wire.Build(
+		wire.Struct(new(TestApplication), "*"),
+
+		applicationSet,
+		testAdaptersSet,
+		mockTxAdaptersSet,
+
+		fixtures.TestLogger,
+	)
+	return TestApplication{}, nil
 }
 
 func newTestAdaptersConfig(tb testing.TB) (config.Config, error) {

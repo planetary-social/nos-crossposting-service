@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"time"
 
 	"github.com/boreq/errors"
 	"github.com/planetary-social/nos-crossposting-service/service/domain"
@@ -65,7 +66,7 @@ type UserTokensRepository interface {
 }
 
 type Publisher interface {
-	PublishTweetCreated(accountID accounts.AccountID, tweet domain.Tweet) error
+	PublishTweetCreated(event TweetCreatedEvent) error
 }
 
 type TweetGenerator interface {
@@ -208,4 +209,59 @@ func (t TwitterAccountDetails) Username() string {
 
 func (t TwitterAccountDetails) ProfileImageURL() string {
 	return t.profileImageURL
+}
+
+type TweetCreatedEvent struct {
+	accountID accounts.AccountID
+	tweet     domain.Tweet
+	createdAt *time.Time
+	event     *domain.Event
+}
+
+func NewTweetCreatedEvent(
+	accountID accounts.AccountID,
+	tweet domain.Tweet,
+	createdAt time.Time,
+	event domain.Event,
+) TweetCreatedEvent {
+	return TweetCreatedEvent{
+		accountID: accountID,
+		tweet:     tweet,
+		createdAt: &createdAt,
+		event:     &event,
+	}
+}
+
+func NewTweetCreatedEventFromHistory(
+	accountID accounts.AccountID,
+	tweet domain.Tweet,
+	createdAt *time.Time,
+	event *domain.Event,
+) TweetCreatedEvent {
+	return TweetCreatedEvent{
+		accountID: accountID,
+		tweet:     tweet,
+		createdAt: createdAt,
+		event:     event,
+	}
+}
+
+func (t TweetCreatedEvent) AccountID() accounts.AccountID {
+	return t.accountID
+}
+
+func (t TweetCreatedEvent) Tweet() domain.Tweet {
+	return t.tweet
+}
+
+func (t TweetCreatedEvent) CreatedAt() *time.Time {
+	return t.createdAt
+}
+
+func (t TweetCreatedEvent) Event() *domain.Event {
+	return t.event
+}
+
+type CurrentTimeProvider interface {
+	GetCurrentTime() time.Time
 }

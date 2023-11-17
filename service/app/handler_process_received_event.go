@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/boreq/errors"
 	"github.com/planetary-social/nos-crossposting-service/internal/logging"
@@ -95,7 +96,8 @@ func (h *ProcessReceivedEventHandler) Handle(ctx context.Context, cmd ProcessRec
 			}
 
 			for _, tweet := range tweets {
-				if err := adapters.Publisher.PublishTweetCreated(account.AccountID(), tweet); err != nil {
+				tweetCreatedEvent := NewTweetCreatedEvent(account.AccountID(), tweet, time.Now(), event)
+				if err := adapters.Publisher.PublishTweetCreated(tweetCreatedEvent); err != nil {
 					return errors.Wrap(err, "error publishing tweet created event")
 				}
 			}

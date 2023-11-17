@@ -16,24 +16,25 @@ type SendTweetHandler interface {
 	Handle(ctx context.Context, cmd app.SendTweet) (err error)
 }
 
+type SqliteSubscriber interface {
+	SubscribeToTweetCreated(ctx context.Context) <-chan *sqlite.ReceivedMessage
+}
+
 type TweetCreatedEventSubscriber struct {
 	handler    SendTweetHandler
-	subscriber *sqlite.Subscriber
+	subscriber SqliteSubscriber
 	logger     logging.Logger
-	metrics    app.Metrics
 }
 
 func NewTweetCreatedEventSubscriber(
 	handler SendTweetHandler,
-	subscriber *sqlite.Subscriber,
+	subscriber SqliteSubscriber,
 	logger logging.Logger,
-	metrics app.Metrics,
 ) *TweetCreatedEventSubscriber {
 	return &TweetCreatedEventSubscriber{
 		handler:    handler,
 		subscriber: subscriber,
 		logger:     logger.New("tweetCreatedEventSubscriber"),
-		metrics:    metrics,
 	}
 }
 func (s *TweetCreatedEventSubscriber) Run(ctx context.Context) error {
@@ -65,11 +66,30 @@ func (s *TweetCreatedEventSubscriber) handleMessage(ctx context.Context, msg *sq
 	}
 
 	tweet := domain.NewTweet(transport.Tweet.Text)
-	cmd := app.NewSendTweet(accountID, tweet)
+
+	event, err := s.getEvent(transport)
+	if err != nil {
+		return errors.Wrap(err, "error getting the event from transport")
+	}
+
+	cmd := app.NewSendTweet(accountID, tweet, event)
 
 	if err := s.handler.Handle(ctx, cmd); err != nil {
 		return errors.Wrap(err, "error calling the handler")
 	}
 
 	return nil
+}
+
+func (s *TweetCreatedEventSubscriber) getEvent(transport sqlite.TweetCreatedEventTransport) (*domain.Event, error) {
+	if len(transport.Event) == 0 {
+		return nil, nil
+	}
+
+	event, err := domain.NewEventFromRaw(transport.Event)
+	if err != nil {
+		return nil, errors.Wrap(err, "error creating a domain event")
+	}
+
+	return &event, nil
 }
