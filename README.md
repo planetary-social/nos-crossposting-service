@@ -222,4 +222,4 @@ used in the following cases:
 [uber-style-guide]: https://github.com/uber-go/guide/blob/master/style.md
 
 
-[purplepages]: https://purplepag.es
+[purplepages]: https://purplepag.es/what
