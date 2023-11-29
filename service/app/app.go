@@ -214,8 +214,8 @@ func (t TwitterAccountDetails) ProfileImageURL() string {
 type TweetCreatedEvent struct {
 	accountID accounts.AccountID
 	tweet     domain.Tweet
-	createdAt *time.Time
-	event     *domain.Event
+	createdAt time.Time
+	event     domain.Event
 }
 
 func NewTweetCreatedEvent(
@@ -223,20 +223,6 @@ func NewTweetCreatedEvent(
 	tweet domain.Tweet,
 	createdAt time.Time,
 	event domain.Event,
-) TweetCreatedEvent {
-	return TweetCreatedEvent{
-		accountID: accountID,
-		tweet:     tweet,
-		createdAt: &createdAt,
-		event:     &event,
-	}
-}
-
-func NewTweetCreatedEventFromHistory(
-	accountID accounts.AccountID,
-	tweet domain.Tweet,
-	createdAt *time.Time,
-	event *domain.Event,
 ) TweetCreatedEvent {
 	return TweetCreatedEvent{
 		accountID: accountID,
@@ -254,11 +240,11 @@ func (t TweetCreatedEvent) Tweet() domain.Tweet {
 	return t.tweet
 }
 
-func (t TweetCreatedEvent) CreatedAt() *time.Time {
+func (t TweetCreatedEvent) CreatedAt() time.Time {
 	return t.createdAt
 }
 
-func (t TweetCreatedEvent) Event() *domain.Event {
+func (t TweetCreatedEvent) Event() domain.Event {
 	return t.event
 }
 

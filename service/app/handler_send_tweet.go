@@ -14,17 +14,13 @@ const (
 	dropEventsIfNotPostedFor = 7 * 24 * time.Hour
 )
 
-var (
-	whenEventWasAddedToTweetCreatedEvent = time.Date(2023, time.November, 17, 0, 0, 0, 0, time.UTC)
-)
-
 type SendTweet struct {
 	accountID accounts.AccountID
 	tweet     domain.Tweet
-	event     *domain.Event
+	event     domain.Event
 }
 
-func NewSendTweet(accountID accounts.AccountID, tweet domain.Tweet, event *domain.Event) SendTweet {
+func NewSendTweet(accountID accounts.AccountID, tweet domain.Tweet, event domain.Event) SendTweet {
 	return SendTweet{
 		accountID: accountID,
 		tweet:     tweet,
@@ -40,7 +36,7 @@ func (s SendTweet) Tweet() domain.Tweet {
 	return s.tweet
 }
 
-func (s SendTweet) Event() *domain.Event {
+func (s SendTweet) Event() domain.Event {
 	return s.event
 }
 
@@ -77,16 +73,9 @@ func (h *SendTweetHandler) Handle(ctx context.Context, cmd SendTweet) (err error
 		WithField("tweet", cmd.tweet.Text()).
 		Message("attempting to post a tweet")
 
-	if cmd.event != nil {
-		dropEventIfPostedBefore := h.currentTimeProvider.GetCurrentTime().Add(-dropEventsIfNotPostedFor)
-		if cmd.event.CreatedAt().Before(dropEventIfPostedBefore) {
-			return nil
-		}
-	} else {
-		dropEventIfItIsNilAndCurrentTimeIsAfter := whenEventWasAddedToTweetCreatedEvent.Add(dropEventsIfNotPostedFor)
-		if h.currentTimeProvider.GetCurrentTime().After(dropEventIfItIsNilAndCurrentTimeIsAfter) {
-			return nil
-		}
+	dropEventIfPostedBefore := h.currentTimeProvider.GetCurrentTime().Add(-dropEventsIfNotPostedFor)
+	if cmd.event.CreatedAt().Before(dropEventIfPostedBefore) {
+		return nil
 	}
 
 	var userTokens *accounts.TwitterUserTokens

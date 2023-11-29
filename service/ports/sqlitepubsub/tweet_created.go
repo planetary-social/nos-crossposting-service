@@ -67,9 +67,9 @@ func (s *TweetCreatedEventSubscriber) handleMessage(ctx context.Context, msg *sq
 
 	tweet := domain.NewTweet(transport.Tweet.Text)
 
-	event, err := s.getEvent(transport)
+	event, err := domain.NewEventFromRaw(transport.Event)
 	if err != nil {
-		return errors.Wrap(err, "error getting the event from transport")
+		return errors.Wrap(err, "error loading the event")
 	}
 
 	cmd := app.NewSendTweet(accountID, tweet, event)
@@ -79,17 +79,4 @@ func (s *TweetCreatedEventSubscriber) handleMessage(ctx context.Context, msg *sq
 	}
 
 	return nil
-}
-
-func (s *TweetCreatedEventSubscriber) getEvent(transport sqlite.TweetCreatedEventTransport) (*domain.Event, error) {
-	if len(transport.Event) == 0 {
-		return nil, nil
-	}
-
-	event, err := domain.NewEventFromRaw(transport.Event)
-	if err != nil {
-		return nil, errors.Wrap(err, "error creating a domain event")
-	}
-
-	return &event, nil
 }

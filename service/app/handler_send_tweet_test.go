@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/planetary-social/nos-crossposting-service/cmd/crossposting-service/di"
-	"github.com/planetary-social/nos-crossposting-service/internal"
 	"github.com/planetary-social/nos-crossposting-service/internal/fixtures"
 	"github.com/planetary-social/nos-crossposting-service/service/app"
 	"github.com/planetary-social/nos-crossposting-service/service/domain"
@@ -18,31 +17,15 @@ func TestSendTweetHandler_CorrectlyDropsOldEvents(t *testing.T) {
 		Name string
 
 		CurrentTime time.Time
-		Event       *domain.Event
+		Event       domain.Event
 
 		ShouldPostTweet bool
 	}{
 		{
-			Name: "old_events_are_dropped_after_a_week_since_code_change_passes",
-
-			CurrentTime: date(2023, time.November, 25),
-			Event:       nil,
-
-			ShouldPostTweet: false,
-		},
-		{
-			Name: "old_events_are_not_dropped_before_a_week_since_code_change_passes",
-
-			CurrentTime: date(2023, time.November, 23),
-			Event:       nil,
-
-			ShouldPostTweet: true,
-		},
-		{
 			Name: "new_events_are_dropped_after_a_week_since_they_were_created",
 
 			CurrentTime: date(2023, time.November, 28),
-			Event:       internal.Pointer(fixtures.SomeEventWithCreatedAt(date(2023, time.November, 20))),
+			Event:       fixtures.SomeEventWithCreatedAt(date(2023, time.November, 20)),
 
 			ShouldPostTweet: false,
 		},
@@ -50,7 +33,7 @@ func TestSendTweetHandler_CorrectlyDropsOldEvents(t *testing.T) {
 			Name: "new_events_are_not_dropped_before_a_week_since_they_were_created",
 
 			CurrentTime: date(2023, time.November, 27),
-			Event:       internal.Pointer(fixtures.SomeEventWithCreatedAt(date(2023, time.November, 20))),
+			Event:       fixtures.SomeEventWithCreatedAt(date(2023, time.November, 20)),
 
 			ShouldPostTweet: true,
 		},
