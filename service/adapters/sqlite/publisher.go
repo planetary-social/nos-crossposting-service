@@ -48,7 +48,7 @@ type TweetCreatedEventTransport struct {
 	AccountID string         `json:"accountID"`
 	Tweet     TweetTransport `json:"tweet"`
 	Event     []byte         `json:"event"`
-	CreatedAt *time.Time     `json:"createdAt"`
+	CreatedAt time.Time      `json:"createdAt"`
 }
 
 type TweetTransport struct {

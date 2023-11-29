@@ -27,15 +27,6 @@ func TestTweetCreatedEventSubscriber_CanHandleOldAndNewEvents(t *testing.T) {
 		ExpectedCommand app.SendTweet
 	}{
 		{
-			Name:    "old",
-			Payload: `{"accountID": "someAccountID", "tweet": {"text": "someTweetText"}}`,
-			ExpectedCommand: app.NewSendTweet(
-				accounts.MustNewAccountID("someAccountID"),
-				domain.NewTweet("someTweetText"),
-				nil,
-			),
-		},
-		{
 			Name: "new",
 			Payload: fmt.Sprintf(
 				`{"accountID": "someAccountID", "tweet": {"text": "someTweetText"}, "event": "%s", "createdAt": "%s"}`,
@@ -45,7 +36,7 @@ func TestTweetCreatedEventSubscriber_CanHandleOldAndNewEvents(t *testing.T) {
 			ExpectedCommand: app.NewSendTweet(
 				accounts.MustNewAccountID("someAccountID"),
 				domain.NewTweet("someTweetText"),
-				&event,
+				event,
 			),
 		},
 	}
@@ -76,11 +67,7 @@ func TestTweetCreatedEventSubscriber_CanHandleOldAndNewEvents(t *testing.T) {
 					call := calls[0]
 					assert.Equal(t, call.AccountID(), testCase.ExpectedCommand.AccountID())
 					assert.Equal(t, call.Tweet(), testCase.ExpectedCommand.Tweet())
-					if testCase.ExpectedCommand.Event() == nil {
-						require.Nil(t, call.Event())
-					} else {
-						assert.Equal(t, call.Event().Raw(), testCase.ExpectedCommand.Event().Raw())
-					}
+					assert.Equal(t, call.Event().Raw(), testCase.ExpectedCommand.Event().Raw())
 				}
 			}, 1*time.Second, 100*time.Millisecond)
 		})
