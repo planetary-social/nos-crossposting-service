@@ -1,6 +1,7 @@
 package di
 
 import (
+	"context"
 	"database/sql"
 
 	"github.com/boreq/errors"
@@ -13,6 +14,7 @@ import (
 	"github.com/planetary-social/nos-crossposting-service/service/adapters/twitter"
 	"github.com/planetary-social/nos-crossposting-service/service/app"
 	"github.com/planetary-social/nos-crossposting-service/service/config"
+	"github.com/planetary-social/nos-crossposting-service/service/domain"
 )
 
 var sqliteAdaptersSet = wire.NewSet(
@@ -62,7 +64,7 @@ var adaptersSet = wire.NewSet(
 	wire.Bind(new(app.AccountIDGenerator), new(*adapters.IDGenerator)),
 
 	adapters.NewRelaySource,
-	adapters.NewPurplePages,
+	newPurplePages,
 	wire.Bind(new(app.RelaySource), new(*adapters.RelaySource)),
 
 	adapters.NewRelayEventDownloader,
@@ -114,6 +116,26 @@ var mockTxAdaptersSet = wire.NewSet(
 	mocks.NewPublisher,
 	wire.Bind(new(app.Publisher), new(*mocks.Publisher)),
 )
+
+var purplePagesAddresses = []domain.RelayAddress{
+	domain.MustNewRelayAddress("wss://purplepag.es"),
+	domain.MustNewRelayAddress("wss://relay.nos.social"),
+}
+
+func newPurplePages(ctx context.Context, logger logging.Logger, metrics app.Metrics) ([]*adapters.CachedPurplePages, error) {
+	var result []*adapters.CachedPurplePages
+
+	for _, address := range purplePagesAddresses {
+		v, err := adapters.NewPurplePages(ctx, address, logger, metrics)
+		if err != nil {
+			return nil, errors.Wrap(err, "error creating purple pages")
+		}
+
+		result = append(result, adapters.NewCachedPurplePages(logger, v))
+	}
+
+	return result, nil
+}
 
 func newAdaptersFactoryFn(deps buildTransactionSqliteAdaptersDependencies) sqlite.AdaptersFactoryFn {
 	return func(db *sql.DB, tx *sql.Tx) (app.Adapters, error) {

@@ -2,10 +2,9 @@ package adapters
 
 import (
 	"context"
-	"sync"
+	"fmt"
 	"time"
 
-	"github.com/boreq/errors"
 	"github.com/planetary-social/nos-crossposting-service/internal"
 	"github.com/planetary-social/nos-crossposting-service/internal/logging"
 	"github.com/planetary-social/nos-crossposting-service/service/domain"
@@ -21,97 +20,26 @@ var hardcodedRelayAddresses = []domain.RelayAddress{
 
 type RelaySource struct {
 	logger      logging.Logger
-	purplePages *PurplePages
-	cache       *RelayAddressCache
+	purplePages []*CachedPurplePages
 }
 
-func NewRelaySource(logger logging.Logger, purplePages *PurplePages) *RelaySource {
+func NewRelaySource(logger logging.Logger, purplePages []*CachedPurplePages) *RelaySource {
 	return &RelaySource{
 		logger:      logger,
 		purplePages: purplePages,
-		cache:       NewRelayAddressCache(),
 	}
 }
 
 func (p RelaySource) GetRelays(ctx context.Context, publicKey domain.PublicKey) ([]domain.RelayAddress, error) {
-	result := internal.NewEmptySet[domain.RelayAddress]()
+	result := internal.NewSet[domain.RelayAddress](hardcodedRelayAddresses)
 
-	for _, relayAddress := range hardcodedRelayAddresses {
-		result.Put(relayAddress)
-	}
-
-	relayAddressesFromPurplePages, err := p.getRelaysFromPurplePagesOrCache(ctx, publicKey)
-	if err != nil {
-		return nil, errors.Wrap(err, "error getting relays from purple pages")
-	}
-
-	for _, relayAddress := range relayAddressesFromPurplePages {
-		result.Put(relayAddress)
+	for _, purplePages := range p.purplePages {
+		relayAddressesFromPurplePages, err := purplePages.GetRelays(ctx, publicKey)
+		if err != nil {
+			return nil, fmt.Errorf("error getting relays from '%s'", purplePages.Address().String())
+		}
+		result.PutMany(relayAddressesFromPurplePages)
 	}
 
 	return result.List(), nil
-}
-
-func (p RelaySource) getRelaysFromPurplePagesOrCache(ctx context.Context, publicKey domain.PublicKey) ([]domain.RelayAddress, error) {
-	var previousEntries []domain.RelayAddress
-
-	entry, ok := p.cache.Get(publicKey)
-	if ok {
-		previousEntries = entry.Addresses
-		if time.Since(entry.T) < refreshPurplePagesAfter {
-			return previousEntries, nil
-		}
-	}
-
-	relayAddressesFromPurplePages, err := p.getRelaysFromPurplePages(ctx, publicKey)
-	if err != nil {
-		return nil, errors.Wrap(err, "error querying purple pages")
-	}
-
-	p.cache.Set(publicKey, relayAddressesFromPurplePages)
-	return relayAddressesFromPurplePages, nil
-}
-
-func (p RelaySource) getRelaysFromPurplePages(ctx context.Context, publicKey domain.PublicKey) ([]domain.RelayAddress, error) {
-	relayAddressesFromPurplePages, err := p.purplePages.GetRelays(ctx, publicKey)
-	if err != nil {
-		if errors.Is(err, ErrRelayListNotFoundInPurplePages) {
-			p.logger.Debug().WithError(err).Message("relay list not found in purple pages")
-			return nil, nil
-		}
-		return nil, errors.Wrap(err, "error querying purple pages")
-	}
-	return relayAddressesFromPurplePages, nil
-}
-
-type RelayAddressCache struct {
-	m    map[domain.PublicKey]Entry
-	lock sync.Mutex
-}
-
-func NewRelayAddressCache() *RelayAddressCache {
-	return &RelayAddressCache{m: make(map[domain.PublicKey]Entry)}
-}
-
-func (c *RelayAddressCache) Set(publicKey domain.PublicKey, addresses []domain.RelayAddress) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-
-	c.m[publicKey] = Entry{
-		T:         time.Now(),
-		Addresses: addresses,
-	}
-}
-
-func (c *RelayAddressCache) Get(publicKey domain.PublicKey) (Entry, bool) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-
-	v, ok := c.m[publicKey]
-	return v, ok
-}
-
-type Entry struct {
-	T         time.Time
-	Addresses []domain.RelayAddress
 }

@@ -124,7 +124,7 @@ func NewPrometheus(logger logging.Logger) (*Prometheus, error) {
 			Name: "purple_pages_lookups",
 			Help: "Number of purple pages lookups.",
 		},
-		[]string{labelResult, labelErrorDescription},
+		[]string{labelResult, labelErrorDescription, labelRelayAddress},
 	)
 	tweetCreatedCountPerAccountGauge := prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
@@ -257,10 +257,11 @@ func (p *Prometheus) ReportSubscriptionQueueLength(topic string, n int) {
 	p.subscriptionQueueLengthGauge.With(prometheus.Labels{labelTopic: topic}).Set(float64(n))
 }
 
-func (p *Prometheus) ReportPurplePagesLookupResult(err *error) {
+func (p *Prometheus) ReportPurplePagesLookupResult(address domain.RelayAddress, err *error) {
 	labels := prometheus.Labels{
 		labelResult:           labelResultValueSuccess,
 		labelErrorDescription: "none",
+		labelRelayAddress:     address.String(),
 	}
 	if *err != nil {
 		labels[labelResult] = labelResultValueError
