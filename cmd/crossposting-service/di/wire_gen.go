@@ -86,12 +86,12 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 	server := http.NewServer(configConfig, application, logger, frontendFileSystem)
 	metricsServer := http.NewMetricsServer(prometheusPrometheus, configConfig, logger)
 	receivedEventPubSub := memorypubsub.NewReceivedEventPubSub()
-	purplePages, err := adapters.NewPurplePages(contextContext, logger, prometheusPrometheus)
+	v, err := newPurplePages(contextContext, logger, prometheusPrometheus)
 	if err != nil {
 		cleanup()
 		return Service{}, nil, err
 	}
-	relaySource := adapters.NewRelaySource(logger, purplePages)
+	relaySource := adapters.NewRelaySource(logger, v)
 	relayEventDownloader := adapters.NewRelayEventDownloader(contextContext, logger, prometheusPrometheus)
 	downloader := app.NewDownloader(genericTransactionProvider, receivedEventPubSub, logger, prometheusPrometheus, relaySource, relayEventDownloader)
 	transformer := content.NewTransformer()

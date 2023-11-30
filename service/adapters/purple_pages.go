@@ -2,6 +2,7 @@ package adapters
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -19,8 +20,6 @@ var (
 	errLookupFoundNoEvents = errors.New("lookup found no events")
 )
 
-var purplePagesAddress = domain.MustNewRelayAddress("wss://purplepag.es")
-
 const purplePagesLookupTimeout = 10 * time.Second
 
 const numLookups = 2
@@ -34,21 +33,22 @@ type PurplePages struct {
 
 func NewPurplePages(
 	ctx context.Context,
+	address domain.RelayAddress,
 	logger logging.Logger,
 	metrics app.Metrics,
 ) (*PurplePages, error) {
-	connection := NewRelayConnection(purplePagesAddress, logger)
+	connection := NewRelayConnection(address, logger)
 	go connection.Run(ctx)
 
 	return &PurplePages{
-		logger:     logger,
+		logger:     logger.New(fmt.Sprintf("PurplePages(%s)", address.String())),
 		metrics:    metrics,
 		connection: connection,
 	}, nil
 }
 
 func (p *PurplePages) GetRelays(ctx context.Context, publicKey domain.PublicKey) (result []domain.RelayAddress, err error) {
-	defer p.metrics.ReportPurplePagesLookupResult(&err)
+	defer p.metrics.ReportPurplePagesLookupResult(p.connection.Address(), &err)
 
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
@@ -195,6 +195,10 @@ func (p *PurplePages) getRelaysFromContacts(ctx context.Context, publicKey domai
 	}
 
 	return nil, errors.New("timeout")
+}
+
+func (p *PurplePages) Address() domain.RelayAddress {
+	return p.connection.Address()
 }
 
 type relaysOrError struct {

@@ -142,7 +142,7 @@ type Metrics interface {
 	ReportCallingTwitterAPIToPostATweet(err error)
 	ReportCallingTwitterAPIToGetAUser(err error)
 	ReportSubscriptionQueueLength(topic string, n int)
-	ReportPurplePagesLookupResult(err *error)
+	ReportPurplePagesLookupResult(address domain.RelayAddress, err *error)
 	ReportTweetCreatedCountPerAccount(m map[accounts.AccountID]int)
 	ReportNumberOfAccounts(count int)
 	ReportNumberOfLinkedPublicKeys(count int)
