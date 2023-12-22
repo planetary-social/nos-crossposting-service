@@ -36,6 +36,21 @@ The reasoning is that suddenly seeing tweets for notes that are quite old would
 be confusing and probably not desired. Additionally there is almost no chance
 that we will ever manage to post those tweets based on the metrics I am seeing.
 
+### Internal sqlite pub sub
+
+In order to handle Twitter API errors tweets are scheduled to be sent by publishing them to an internal queue. Think of this in terms of a command bus.
+
+```mermaid
+flowchart TB
+    process-received-event-handler["ProcessReceivedEventHandler"]
+    send-tweet-handler["SendTweetHandler"]
+    tweet-created-event-subscriber["TweetCreatedEventSubscriber"]
+
+    process-received-event-handler --> |pubsub event| tweet-created-event-subscriber
+    tweet-created-event-subscriber --> |command| send-tweet-handler
+```
+
+
 ## Building and running
 
 Build the program like so:
