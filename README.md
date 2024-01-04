@@ -152,6 +152,10 @@ Go-related metrics are available. We also have custom metrics:
 
 See `service/adapters/prometheus`.
 
+## Deployment
+
+We deploy this service using [ansible](https://github.com/planetary-social/ansible-scripts).  The steps for deployment can be read in our [internal notion page](https://www.notion.so/nossocial/Deploying-services-via-Ansible-2b8d01a60d2441e197d4e03d3274c9ef?pvs=4).
+
 ## Contributing
 
 ### Go version
