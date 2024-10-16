@@ -115,7 +115,8 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 		return Service{}, nil, err
 	}
 	loggingMigrationsProgressCallback := adapters.NewLoggingMigrationsProgressCallback(logger)
-	service := NewService(application, server, metricsServer, downloader, receivedEventSubscriber, tweetCreatedEventSubscriber, metrics, runner, migrationsMigrations, loggingMigrationsProgressCallback)
+	vanishSubscriber := app.NewVanishSubscriber(genericTransactionProvider, logger)
+	service := NewService(application, server, metricsServer, downloader, receivedEventSubscriber, tweetCreatedEventSubscriber, metrics, runner, migrationsMigrations, loggingMigrationsProgressCallback, vanishSubscriber)
 	return service, func() {
 		cleanup()
 	}, nil
@@ -305,5 +306,7 @@ type buildTransactionSqliteAdaptersDependencies struct {
 }
 
 var downloaderSet = wire.NewSet(app.NewDownloader)
+
+var vanishSubscriberSet = wire.NewSet(app.NewVanishSubscriber)
 
 var tweetGeneratorSet = wire.NewSet(content.NewTransformer, domain.NewTweetGenerator, wire.Bind(new(app.TweetGenerator), new(*domain.TweetGenerator)))

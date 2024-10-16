@@ -49,6 +49,27 @@ WHERE account_id = $1 AND public_key = $2
 	return nil
 }
 
+func (m *PublicKeyRepository) DeleteByPublicKey(publicKey domain.PublicKey) error {
+	var accountID string
+	row := m.tx.QueryRow(`
+		SELECT account_id FROM public_keys WHERE public_key = $1
+	`, publicKey.Hex())
+
+	err := row.Scan(&accountID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return errors.New("no account found with the provided public key")
+		}
+		return errors.Wrap(err, "error retrieving account_id")
+	}
+
+	if err := m.deleteAccountData(accountID); err != nil {
+		return errors.Wrap(err, "error deleting account-related data")
+	}
+
+	return nil
+}
+
 func (m *PublicKeyRepository) List() ([]*domain.LinkedPublicKey, error) {
 	rows, err := m.tx.Query(`
 SELECT account_id, public_key, created_at
@@ -138,4 +159,28 @@ func (m *PublicKeyRepository) readPublicKey(row *sql.Rows) (*domain.LinkedPublic
 	createdAt := time.Unix(createdAtTmp, 0)
 
 	return domain.NewLinkedPublicKey(accountID, publicKey, createdAt)
+}
+
+func (m *PublicKeyRepository) deleteAccountData(accountID string) error {
+	_, err := m.tx.Exec(`DELETE FROM public_keys WHERE account_id = $1`, accountID)
+	if err != nil {
+		return errors.Wrap(err, "error deleting from public_keys")
+	}
+
+	_, err = m.tx.Exec(`DELETE FROM sessions WHERE account_id = $1`, accountID)
+	if err != nil {
+		return errors.Wrap(err, "error deleting from sessions")
+	}
+
+	_, err = m.tx.Exec(`DELETE FROM accounts WHERE account_id = $1`, accountID)
+	if err != nil {
+		return errors.Wrap(err, "error deleting from accounts")
+	}
+
+	_, err = m.tx.Exec(`DELETE FROM user_tokens WHERE account_id = $1`, accountID)
+	if err != nil {
+		return errors.Wrap(err, "error deleting from user_tokens")
+	}
+
+	return nil
 }

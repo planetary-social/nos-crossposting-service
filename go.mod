@@ -19,6 +19,7 @@ require (
 	github.com/nbd-wtf/go-nostr v0.25.4
 	github.com/oklog/ulid/v2 v2.1.0
 	github.com/prometheus/client_golang v1.16.0
+	github.com/redis/go-redis/v9 v9.6.2
 	github.com/rs/zerolog v1.29.1
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.8.4
@@ -36,6 +37,7 @@ require (
 	github.com/dghubble/go-twitter v0.0.0-20221104224141-912508c3888b // indirect
 	github.com/dghubble/sling v1.4.1 // indirect
 	github.com/dgraph-io/ristretto v0.1.1 // indirect
+	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/gobwas/httphead v0.1.0 // indirect
 	github.com/gobwas/pool v0.2.1 // indirect

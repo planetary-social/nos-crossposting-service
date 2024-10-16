@@ -1,0 +1,36 @@
+services:
+  crossposting:
+    platform: linux/amd64
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      CROSSPOSTING_TWITTER_KEY: xxx
+      CROSSPOSTING_TWITTER_KEY_SECRET: xxx
+      CROSSPOSTING_DATABASE_PATH: /db/database.sqlite
+      CROSSPOSTING_ENVIRONMENT: DEVELOPMENT
+      CROSSPOSTING_PUBLIC_FACING_ADDRESS: http://localhost:8008/
+      REDIS_URL: redis://redis:6379
+    ports:
+      - 8008:8008
+    volumes:
+      - ./db:/db
+    depends_on:
+      - redis
+
+  redis:
+    platform: linux/amd64
+    image: redis:alpine
+    ports:
+      - 6379:6379
+
+  relay:
+    platform: linux/amd64
+    image: ghcr.io/planetary-social/nosrelay:latest
+    ports:
+      - "7777:7777"
+    environment:
+      - RELAY_URL=wss://example.com
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
