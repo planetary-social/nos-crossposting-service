@@ -93,7 +93,7 @@ func (f *VanishSubscriber) Run(ctx context.Context) error {
 
 					err = f.rdb.Set(ctx, lastProcessedIDKey, streamID, 0).Err()
 					if err != nil {
-						f.logger.Error().Message("Error saving last processed ID")
+						f.logger.Error().WithError(err).Message("Error saving last processed ID")
 						return err
 					}
 
@@ -112,7 +112,7 @@ func (f *VanishSubscriber) removePubkeyInfo(ctx context.Context, pubkey domain.P
 	})
 
 	if err != nil {
-		f.logger.Error().WithField("pubkey", pubkey).Message("Failed to remove pubkey info")
+		f.logger.Error().WithError(err).WithField("pubkey", pubkey).Message("Failed to remove pubkey info")
 		return err
 	}
 
