@@ -27,6 +27,7 @@ func BuildService(context.Context, config.Config) (Service, func(), error) {
 		applicationSet,
 		sqliteAdaptersSet,
 		downloaderSet,
+		vanishSubscriberSet,
 		memoryPubsubSet,
 		sqlitePubsubSet,
 		loggingSet,
@@ -114,6 +115,10 @@ func buildTestTransactionSqliteAdapters(*sql.DB, *sql.Tx, buildTransactionSqlite
 
 var downloaderSet = wire.NewSet(
 	app.NewDownloader,
+)
+
+var vanishSubscriberSet = wire.NewSet(
+	app.NewVanishSubscriber,
 )
 
 var tweetGeneratorSet = wire.NewSet(

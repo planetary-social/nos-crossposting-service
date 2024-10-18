@@ -21,6 +21,10 @@ func (m *PublicKeyRepository) Delete(accountID accounts.AccountID, publicKey dom
 	return errors.New("not implemented")
 }
 
+func (m *PublicKeyRepository) DeleteByPublicKey(publicKey domain.PublicKey) error {
+	return errors.New("not implemented")
+}
+
 func (m *PublicKeyRepository) List() ([]*domain.LinkedPublicKey, error) {
 	return nil, errors.New("not implemented")
 }

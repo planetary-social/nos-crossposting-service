@@ -24,6 +24,7 @@ type Service struct {
 	migrationsRunner            *migrations.Runner
 	migrations                  migrations.Migrations
 	migrationsProgressCallback  migrations.ProgressCallback
+	vanishSubscriber            *app.VanishSubscriber
 }
 
 func NewService(
@@ -37,6 +38,7 @@ func NewService(
 	migrationsRunner *migrations.Runner,
 	migrations migrations.Migrations,
 	migrationsProgressCallback migrations.ProgressCallback,
+	vanishSubscriber *app.VanishSubscriber,
 ) Service {
 	return Service{
 		app:                         app,
@@ -49,6 +51,7 @@ func NewService(
 		migrationsRunner:            migrationsRunner,
 		migrations:                  migrations,
 		migrationsProgressCallback:  migrationsProgressCallback,
+		vanishSubscriber:            vanishSubscriber,
 	}
 }
 
@@ -95,6 +98,11 @@ func (s Service) Run(ctx context.Context) error {
 	runners++
 	go func() {
 		errCh <- errors.Wrap(s.metricsTimer.Run(ctx), "metrics timer error")
+	}()
+
+	runners++
+	go func() {
+		errCh <- errors.Wrap(s.vanishSubscriber.Run(ctx), "vanish subscriver error")
 	}()
 
 	var err error

@@ -7,6 +7,7 @@ import (
 
 	"github.com/planetary-social/nos-crossposting-service/internal/fixtures"
 	"github.com/planetary-social/nos-crossposting-service/service/adapters/sqlite"
+	"github.com/planetary-social/nos-crossposting-service/service/app"
 	"github.com/planetary-social/nos-crossposting-service/service/domain"
 	"github.com/planetary-social/nos-crossposting-service/service/domain/accounts"
 	"github.com/stretchr/testify/require"
@@ -254,6 +255,48 @@ func TestPublicKeyRepository_CountCountsPublicKeys(t *testing.T) {
 		n, err := adapters.PublicKeyRepository.Count()
 		require.NoError(t, err)
 		require.Equal(t, 2, n)
+
+		return nil
+	})
+	require.NoError(t, err)
+}
+
+func TestPublicKeyRepository_DeleteByPublicKey(t *testing.T) {
+	ctx := fixtures.TestContext(t)
+	adapters := NewTestAdapters(ctx, t)
+
+	accountID := fixtures.SomeAccountID()
+	twitterID := fixtures.SomeTwitterID()
+	publicKey := fixtures.SomePublicKey()
+
+	account, err := accounts.NewAccount(accountID, twitterID)
+	require.NoError(t, err)
+
+	err = adapters.TransactionProvider.Transact(ctx, func(ctx context.Context, adapters sqlite.TestAdapters) error {
+		err = adapters.AccountRepository.Save(account)
+		require.NoError(t, err)
+
+		linkedPublicKey, err := domain.NewLinkedPublicKey(accountID, publicKey, time.Now())
+		require.NoError(t, err)
+		err = adapters.PublicKeyRepository.Save(linkedPublicKey)
+		require.NoError(t, err)
+
+		return nil
+	})
+	require.NoError(t, err)
+
+	err = adapters.TransactionProvider.Transact(ctx, func(ctx context.Context, adapters sqlite.TestAdapters) error {
+		err := adapters.PublicKeyRepository.DeleteByPublicKey(publicKey)
+		require.NoError(t, err)
+
+		return nil
+	})
+	require.NoError(t, err)
+
+	err = adapters.TransactionProvider.Transact(ctx, func(ctx context.Context, adapters sqlite.TestAdapters) error {
+		_, err := adapters.AccountRepository.GetByAccountID(accountID)
+		require.Error(t, err)
+		require.Equal(t, app.ErrAccountDoesNotExist, err)
 
 		return nil
 	})
