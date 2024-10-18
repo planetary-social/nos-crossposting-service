@@ -302,3 +302,17 @@ func TestPublicKeyRepository_DeleteByPublicKey(t *testing.T) {
 	})
 	require.NoError(t, err)
 }
+
+func TestPublicKeyRepository_DeleteByPublicKey_NonExistent(t *testing.T) {
+	ctx := fixtures.TestContext(t)
+	adapters := NewTestAdapters(ctx, t)
+
+	publicKey := fixtures.SomePublicKey()
+
+	err := adapters.TransactionProvider.Transact(ctx, func(ctx context.Context, adapters sqlite.TestAdapters) error {
+		err := adapters.PublicKeyRepository.DeleteByPublicKey(publicKey)
+		require.NoError(t, err)
+		return nil
+	})
+	require.NoError(t, err)
+}

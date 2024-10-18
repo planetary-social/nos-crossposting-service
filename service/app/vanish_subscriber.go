@@ -81,13 +81,13 @@ func (f *VanishSubscriber) Run(ctx context.Context) error {
 					pubkey, err := domain.NewPublicKeyFromHex(entry.Values["pubkey"].(string))
 
 					if err != nil {
-						f.logger.Error().Message("Error parsing pubkey")
+						f.logger.Error().WithError(err).Message("Error parsing pubkey")
 						break
 					}
 
 					err = f.removePubkeyInfo(ctx, pubkey)
 					if err != nil {
-						f.logger.Error().WithField("streamId", streamID).Message("Failed to process entry")
+						f.logger.Error().WithError(err).WithField("streamId", streamID).Message("Failed to process entry")
 						continue
 					}
 

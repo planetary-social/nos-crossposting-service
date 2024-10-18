@@ -58,7 +58,7 @@ func (m *PublicKeyRepository) DeleteByPublicKey(publicKey domain.PublicKey) erro
 	err := row.Scan(&accountID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return errors.New("no account found with the provided public key")
+			return nil
 		}
 		return errors.Wrap(err, "error retrieving account_id")
 	}
