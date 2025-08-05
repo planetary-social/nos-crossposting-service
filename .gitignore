@@ -2,3 +2,6 @@
 run.sh
 database.sqlite
 database.sqlite-journal
+local-data/
+docker-compose.override.yml
+db/
