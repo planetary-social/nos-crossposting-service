@@ -28,7 +28,7 @@ lint:
 
 .PHONY: tools
 tools:
-	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.51.1
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.62.2
 	go install github.com/rinchsan/gosimports/cmd/gosimports@v0.3.5 # https://github.com/golang/go/issues/20818
 
 .PHONY: frontend
