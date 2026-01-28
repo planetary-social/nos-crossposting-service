@@ -9,8 +9,6 @@ package di
 import (
 	"context"
 	"database/sql"
-	"testing"
-
 	"github.com/google/wire"
 	"github.com/planetary-social/nos-crossposting-service/internal/fixtures"
 	"github.com/planetary-social/nos-crossposting-service/internal/logging"
@@ -30,6 +28,7 @@ import (
 	memorypubsub2 "github.com/planetary-social/nos-crossposting-service/service/ports/memorypubsub"
 	"github.com/planetary-social/nos-crossposting-service/service/ports/sqlitepubsub"
 	"github.com/planetary-social/nos-crossposting-service/service/ports/timer"
+	"testing"
 )
 
 // Injectors from wire.go:
@@ -46,28 +45,28 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 	diBuildTransactionSqliteAdaptersDependencies := buildTransactionSqliteAdaptersDependencies{
 		Logger: logger,
 	}
-	genericAdaptersFactoryFn := newAdaptersFactoryFn(diBuildTransactionSqliteAdaptersDependencies)
-	genericTransactionProvider := sqlite.NewTransactionProvider(db, genericAdaptersFactoryFn)
+	v := newAdaptersFactoryFn(diBuildTransactionSqliteAdaptersDependencies)
+	v2 := sqlite.NewTransactionProvider(db, v)
 	prometheusPrometheus, err := prometheus.NewPrometheus(logger)
 	if err != nil {
 		cleanup()
 		return Service{}, nil, err
 	}
-	getSessionAccountHandler := app.NewGetSessionAccountHandler(genericTransactionProvider, logger, prometheusPrometheus)
-	getAccountPublicKeysHandler := app.NewGetAccountPublicKeysHandler(genericTransactionProvider, logger, prometheusPrometheus)
+	getSessionAccountHandler := app.NewGetSessionAccountHandler(v2, logger, prometheusPrometheus)
+	getAccountPublicKeysHandler := app.NewGetAccountPublicKeysHandler(v2, logger, prometheusPrometheus)
 	twitterTwitter := twitter.NewTwitter(configConfig, logger, prometheusPrometheus)
 	developmentTwitter := twitter.NewDevelopmentTwitter(logger)
 	appTwitter := selectTwitterAdapterDependingOnConfig(configConfig, twitterTwitter, developmentTwitter)
 	twitterAccountDetailsCache := adapters.NewTwitterAccountDetailsCache()
-	getTwitterAccountDetailsHandler := app.NewGetTwitterAccountDetailsHandler(genericTransactionProvider, appTwitter, twitterAccountDetailsCache, logger, prometheusPrometheus)
+	getTwitterAccountDetailsHandler := app.NewGetTwitterAccountDetailsHandler(v2, appTwitter, twitterAccountDetailsCache, logger, prometheusPrometheus)
 	idGenerator := adapters.NewIDGenerator()
-	loginOrRegisterHandler := app.NewLoginOrRegisterHandler(genericTransactionProvider, idGenerator, idGenerator, logger, prometheusPrometheus)
-	logoutHandler := app.NewLogoutHandler(genericTransactionProvider, logger, prometheusPrometheus)
-	linkPublicKeyHandler := app.NewLinkPublicKeyHandler(genericTransactionProvider, logger, prometheusPrometheus)
-	unlinkPublicKeyHandler := app.NewUnlinkPublicKeyHandler(genericTransactionProvider, logger, prometheusPrometheus)
+	loginOrRegisterHandler := app.NewLoginOrRegisterHandler(v2, idGenerator, idGenerator, logger, prometheusPrometheus)
+	logoutHandler := app.NewLogoutHandler(v2, logger, prometheusPrometheus)
+	linkPublicKeyHandler := app.NewLinkPublicKeyHandler(v2, logger, prometheusPrometheus)
+	unlinkPublicKeyHandler := app.NewUnlinkPublicKeyHandler(v2, logger, prometheusPrometheus)
 	pubSub := sqlite.NewPubSub(db, logger)
 	subscriber := sqlite.NewSubscriber(pubSub, db)
-	updateMetricsHandler := app.NewUpdateMetricsHandler(genericTransactionProvider, subscriber, logger, prometheusPrometheus)
+	updateMetricsHandler := app.NewUpdateMetricsHandler(v2, subscriber, logger, prometheusPrometheus)
 	application := app.Application{
 		GetSessionAccount:        getSessionAccountHandler,
 		GetAccountPublicKeys:     getAccountPublicKeysHandler,
@@ -86,20 +85,20 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 	server := http.NewServer(configConfig, application, logger, frontendFileSystem)
 	metricsServer := http.NewMetricsServer(prometheusPrometheus, configConfig, logger)
 	receivedEventPubSub := memorypubsub.NewReceivedEventPubSub()
-	v, err := newPurplePages(contextContext, logger, prometheusPrometheus)
+	v3, err := newPurplePages(contextContext, logger, prometheusPrometheus)
 	if err != nil {
 		cleanup()
 		return Service{}, nil, err
 	}
-	relaySource := adapters.NewRelaySource(logger, v)
+	relaySource := adapters.NewRelaySource(logger, v3)
 	relayEventDownloader := adapters.NewRelayEventDownloader(contextContext, logger, prometheusPrometheus)
-	downloader := app.NewDownloader(genericTransactionProvider, receivedEventPubSub, logger, prometheusPrometheus, relaySource, relayEventDownloader)
+	downloader := app.NewDownloader(v2, receivedEventPubSub, logger, prometheusPrometheus, relaySource, relayEventDownloader)
 	transformer := content.NewTransformer()
 	tweetGenerator := domain.NewTweetGenerator(transformer)
-	processReceivedEventHandler := app.NewProcessReceivedEventHandler(genericTransactionProvider, tweetGenerator, logger, prometheusPrometheus)
+	processReceivedEventHandler := app.NewProcessReceivedEventHandler(v2, tweetGenerator, logger, prometheusPrometheus)
 	receivedEventSubscriber := memorypubsub2.NewReceivedEventSubscriber(receivedEventPubSub, processReceivedEventHandler, logger)
 	currentTimeProvider := adapters.NewCurrentTimeProvider()
-	sendTweetHandler := app.NewSendTweetHandler(genericTransactionProvider, appTwitter, currentTimeProvider, logger, prometheusPrometheus)
+	sendTweetHandler := app.NewSendTweetHandler(v2, appTwitter, currentTimeProvider, logger, prometheusPrometheus)
 	tweetCreatedEventSubscriber := sqlitepubsub.NewTweetCreatedEventSubscriber(sendTweetHandler, subscriber, logger)
 	metrics := timer.NewMetrics(application, logger)
 	migrationsStorage, err := sqlite.NewMigrationsStorage(db)
@@ -115,8 +114,8 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 		return Service{}, nil, err
 	}
 	loggingMigrationsProgressCallback := adapters.NewLoggingMigrationsProgressCallback(logger)
-	vanishSubscriber := app.NewVanishSubscriber(genericTransactionProvider, logger)
-	service := NewService(application, server, metricsServer, downloader, receivedEventSubscriber, tweetCreatedEventSubscriber, metrics, runner, migrationsMigrations, loggingMigrationsProgressCallback, vanishSubscriber)
+	vanishSubscriber := app.NewVanishSubscriber(v2, logger)
+	service := NewService(application, server, metricsServer, downloader, receivedEventSubscriber, tweetCreatedEventSubscriber, metrics, runner, migrationsMigrations, loggingMigrationsProgressCallback, vanishSubscriber, logger)
 	return service, func() {
 		cleanup()
 	}, nil
@@ -138,8 +137,8 @@ func BuildTestAdapters(contextContext context.Context, tb testing.TB) (sqlite.Te
 	diBuildTransactionSqliteAdaptersDependencies := buildTransactionSqliteAdaptersDependencies{
 		Logger: logger,
 	}
-	genericAdaptersFactoryFn := newTestAdaptersFactoryFn(diBuildTransactionSqliteAdaptersDependencies)
-	genericTransactionProvider := sqlite.NewTestTransactionProvider(db, genericAdaptersFactoryFn)
+	v := newTestAdaptersFactoryFn(diBuildTransactionSqliteAdaptersDependencies)
+	v2 := sqlite.NewTestTransactionProvider(db, v)
 	pubSub := sqlite.NewPubSub(db, logger)
 	subscriber := sqlite.NewSubscriber(pubSub, db)
 	migrationsStorage, err := sqlite.NewMigrationsStorage(db)
@@ -156,7 +155,7 @@ func BuildTestAdapters(contextContext context.Context, tb testing.TB) (sqlite.Te
 	}
 	loggingMigrationsProgressCallback := adapters.NewLoggingMigrationsProgressCallback(logger)
 	testedItems := sqlite.TestedItems{
-		TransactionProvider:        genericTransactionProvider,
+		TransactionProvider:        v2,
 		Subscriber:                 subscriber,
 		MigrationsStorage:          migrationsStorage,
 		PubSub:                     pubSub,

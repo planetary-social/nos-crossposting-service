@@ -5,6 +5,8 @@ import (
 
 	"github.com/boreq/errors"
 	"github.com/hashicorp/go-multierror"
+	"github.com/planetary-social/nos-crossposting-service/internal/goroutine"
+	"github.com/planetary-social/nos-crossposting-service/internal/logging"
 	"github.com/planetary-social/nos-crossposting-service/migrations"
 	"github.com/planetary-social/nos-crossposting-service/service/app"
 	"github.com/planetary-social/nos-crossposting-service/service/ports/http"
@@ -25,6 +27,7 @@ type Service struct {
 	migrations                  migrations.Migrations
 	migrationsProgressCallback  migrations.ProgressCallback
 	vanishSubscriber            *app.VanishSubscriber
+	logger                      logging.Logger
 }
 
 func NewService(
@@ -39,6 +42,7 @@ func NewService(
 	migrations migrations.Migrations,
 	migrationsProgressCallback migrations.ProgressCallback,
 	vanishSubscriber *app.VanishSubscriber,
+	logger logging.Logger,
 ) Service {
 	return Service{
 		app:                         app,
@@ -52,6 +56,7 @@ func NewService(
 		migrations:                  migrations,
 		migrationsProgressCallback:  migrationsProgressCallback,
 		vanishSubscriber:            vanishSubscriber,
+		logger:                      logger.New("service"),
 	}
 }
 
@@ -70,40 +75,45 @@ func (s Service) Run(ctx context.Context) error {
 	errCh := make(chan error)
 	runners := 0
 
-	runners++
-	go func() {
-		errCh <- errors.Wrap(s.server.ListenAndServe(ctx), "server error")
-	}()
+	// All goroutines are wrapped with panic recovery. If any goroutine panics,
+	// the panic is logged with a stack trace and converted to an error, which
+	// triggers context cancellation and graceful shutdown of all other goroutines.
+	// This prevents zombie goroutines from running after a panic.
 
 	runners++
-	go func() {
-		errCh <- errors.Wrap(s.metricsServer.ListenAndServe(ctx), "metrics server error")
-	}()
+	goroutine.Run(errCh, s.logger, "http-server", func() error {
+		return s.server.ListenAndServe(ctx)
+	})
 
 	runners++
-	go func() {
-		errCh <- errors.Wrap(s.downloader.Run(ctx), "downloader error")
-	}()
+	goroutine.Run(errCh, s.logger, "metrics-server", func() error {
+		return s.metricsServer.ListenAndServe(ctx)
+	})
 
 	runners++
-	go func() {
-		errCh <- errors.Wrap(s.receivedEventSubscriber.Run(ctx), "received event subscriber error")
-	}()
+	goroutine.Run(errCh, s.logger, "downloader", func() error {
+		return s.downloader.Run(ctx)
+	})
 
 	runners++
-	go func() {
-		errCh <- errors.Wrap(s.tweetCreatedEventSubscriber.Run(ctx), "tweet created event subscriber error")
-	}()
+	goroutine.Run(errCh, s.logger, "received-event-subscriber", func() error {
+		return s.receivedEventSubscriber.Run(ctx)
+	})
 
 	runners++
-	go func() {
-		errCh <- errors.Wrap(s.metricsTimer.Run(ctx), "metrics timer error")
-	}()
+	goroutine.Run(errCh, s.logger, "tweet-created-event-subscriber", func() error {
+		return s.tweetCreatedEventSubscriber.Run(ctx)
+	})
 
 	runners++
-	go func() {
-		errCh <- errors.Wrap(s.vanishSubscriber.Run(ctx), "vanish subscriver error")
-	}()
+	goroutine.Run(errCh, s.logger, "metrics-timer", func() error {
+		return s.metricsTimer.Run(ctx)
+	})
+
+	runners++
+	goroutine.Run(errCh, s.logger, "vanish-subscriber", func() error {
+		return s.vanishSubscriber.Run(ctx)
+	})
 
 	var err error
 	for i := 0; i < runners; i++ {
