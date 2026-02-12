@@ -2,6 +2,8 @@ package di
 
 import (
 	"context"
+	"os"
+	"time"
 
 	"github.com/boreq/errors"
 	"github.com/hashicorp/go-multierror"
@@ -14,6 +16,8 @@ import (
 	"github.com/planetary-social/nos-crossposting-service/service/ports/sqlitepubsub"
 	"github.com/planetary-social/nos-crossposting-service/service/ports/timer"
 )
+
+const shutdownTimeout = 30 * time.Second
 
 type Service struct {
 	app                         app.Application
@@ -115,10 +119,29 @@ func (s Service) Run(ctx context.Context) error {
 		return s.vanishSubscriber.Run(ctx)
 	})
 
-	var err error
-	for i := 0; i < runners; i++ {
-		err = multierror.Append(err, errors.Wrap(<-errCh, "error returned by runner"))
-		cancel()
+	// Wait for the first goroutine to fail.
+	firstErr := <-errCh
+	err := multierror.Append(nil, errors.Wrap(firstErr, "error returned by runner"))
+	cancel()
+
+	s.logger.Error().
+		WithError(firstErr).
+		Message("first goroutine exited, cancelling context and waiting for shutdown")
+
+	// Collect remaining goroutine errors with a timeout. If goroutines don't
+	// shut down within the deadline (e.g. due to leaked child goroutines),
+	// force-exit the process so Docker can restart it. This prevents the
+	// process from running as a zombie with dead HTTP servers.
+	deadline := time.After(shutdownTimeout)
+	for i := 1; i < runners; i++ {
+		select {
+		case e := <-errCh:
+			err = multierror.Append(err, errors.Wrap(e, "error returned by runner"))
+		case <-deadline:
+			s.logger.Error().
+				Message("graceful shutdown timed out, force exiting")
+			os.Exit(1)
+		}
 	}
 
 	return err
